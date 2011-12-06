@@ -1,0 +1,5 @@
+c:\users\mediaconnect\documents\visual studio 2010\Projects\PlayingWithCsharp\PlayingWithCsharp\bin\Debug\PlayingWithCsharp.exe
+c:\users\mediaconnect\documents\visual studio 2010\Projects\PlayingWithCsharp\PlayingWithCsharp\bin\Debug\PlayingWithCsharp.pdb
+c:\users\mediaconnect\documents\visual studio 2010\Projects\PlayingWithCsharp\PlayingWithCsharp\obj\x86\Debug\ResolveAssemblyReference.cache
+c:\users\mediaconnect\documents\visual studio 2010\Projects\PlayingWithCsharp\PlayingWithCsharp\obj\x86\Debug\PlayingWithCsharp.exe
+c:\users\mediaconnect\documents\visual studio 2010\Projects\PlayingWithCsharp\PlayingWithCsharp\obj\x86\Debug\PlayingWithCsharp.pdb
