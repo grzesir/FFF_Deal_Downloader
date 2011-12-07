@@ -795,6 +795,8 @@ namespace PlayingWithCsharp
             result = result.Replace("<strong>", "");
             result = result.Replace("</strong>", "");
             result = result.Replace("</div>", "");
+            result = result.Replace("</font>", "");
+            result = result.Replace("</blockquote>", "");
             result = result.Replace("</span>", "");
             result = result.Replace("</a>", "");
             result = result.Replace("<b>", "\n");
@@ -848,6 +850,39 @@ namespace PlayingWithCsharp
                 i = result.IndexOf(htmlTag);
             }
             htmlTag = "<!--";
+            i = result.IndexOf(htmlTag);
+            while (i != -1)
+            {
+                int j = result.IndexOf(">", i + 1);
+                if (j != -1)
+                    result = result.Replace(result.Substring(i, j - i + 1), "");
+                else
+                    result = result.Replace(result.Substring(i, result.Length - i), "");
+                i = result.IndexOf(htmlTag);
+            }
+            htmlTag = "<strong";
+            i = result.IndexOf(htmlTag);
+            while (i != -1)
+            {
+                int j = result.IndexOf(">", i + 1);
+                if (j != -1)
+                    result = result.Replace(result.Substring(i, j - i + 1), "");
+                else
+                    result = result.Replace(result.Substring(i, result.Length - i), "");
+                i = result.IndexOf(htmlTag);
+            }
+            htmlTag = "<blockquote";
+            i = result.IndexOf(htmlTag);
+            while (i != -1)
+            {
+                int j = result.IndexOf(">", i + 1);
+                if (j != -1)
+                    result = result.Replace(result.Substring(i, j - i + 1), "");
+                else
+                    result = result.Replace(result.Substring(i, result.Length - i), "");
+                i = result.IndexOf(htmlTag);
+            }
+            htmlTag = "<font";
             i = result.IndexOf(htmlTag);
             while (i != -1)
             {
@@ -1040,7 +1075,7 @@ namespace PlayingWithCsharp
                         SideDeals.RemoveAt(0);
                     }
 
-      //                             URL = "http://www.dealticker.com/product.php/product_id/16899";
+       //                       URL = "http://www.dealfind.com/chicago/hawyeyechiropractic3";
                     URL = baseAddress.Replace("$", part_URL);
                     // opening Website
                     read = DownloadData(URL);
@@ -1193,7 +1228,7 @@ namespace PlayingWithCsharp
                                         for (int j = 5; j <= 40; j++)
                                         {
  //                                           Console.Write(j + " ");
-                                            if (j == 14)
+                                            if (j == 39)
                                             {
                                                 Console.Write("");
                                             }
@@ -1220,8 +1255,14 @@ namespace PlayingWithCsharp
                                             }
                                             // end Data not expected.
                                             temp = temp.Replace("\n", "; ");
-                                            while (temp.IndexOf("; ;") != -1)
-                                                temp = temp.Replace("; ;", "; ");
+                                            temp = temp.Replace("\t", " ");
+                                            temp = temp.Replace((char)8206, ' ');
+                                            while (temp.IndexOf("  ") != -1)
+                                                temp = temp.Replace("  ", " ");
+                                            while (temp.IndexOf(" ;") != -1)
+                                                temp = temp.Replace(" ;", ";");
+                                            while (temp.IndexOf(";;") != -1)
+                                                temp = temp.Replace(";;", ";");
                                             DealData.data[j] = temp;
                                         }
                                         // extract province
@@ -1348,18 +1389,6 @@ namespace PlayingWithCsharp
                 if ((dd.data[18].Length == 30) && (dd.data[18] == "http://maps.google.com/maps?q="))
                     dd.data[18] = "";
 
-                if (dd.data[0] == "http://www.dealticker.com/toronto_en_1categ.html")
-                {
-                    transferEmails(ref dd.data[15], ref dd.data[19]);
-                    if ((dd.data[15] != "") && ((dd.data[15][0] == '(') || ((dd.data[15][0] >= '0') && (dd.data[15][0] <= '9'))))
-                    {
-                        // Contacts are in the wrong place. Moving them from City to Contact
-                        dd.data[19] = dd.data[19] + dd.data[15] + "; ";
-                        dd.data[15] = "";
-                        // streetName must be null??
-           //             dd.data[14] = "";
-                    }
-                }
 
                 if (dd.data[0] == "http://www.teambuy.ca/toronto")
                 {
@@ -1389,6 +1418,8 @@ namespace PlayingWithCsharp
                         dd.data[19] = dd.data[i] + ", " + dd.data[19];
                     aux = aux.Replace("to redeem voucher,", "");
                     aux = aux.Replace("to redeem voucher", "");
+                    aux = aux.Replace("to redeem your voucher,", "");
+                    aux = aux.Replace("to redeem your voucher", "");
                     aux = aux.Replace("please visit:", "");
                     aux = aux.Replace("please visit", "");
                     aux = aux.Replace("redeem online by clicking the \"redemption\" link on your voucher", "");
@@ -1433,6 +1464,29 @@ namespace PlayingWithCsharp
                     }
                 }
 
+                if (dd.data[0] == "http://www.dealticker.com/toronto_en_1categ.html")
+                {
+                    transferEmails(ref dd.data[15], ref dd.data[19]);
+                    if ((dd.data[15] != "") && ((dd.data[15][0] == '(') || ((dd.data[15][0] >= '0') && (dd.data[15][0] <= '9'))))
+                    {
+                        // Contacts are in the wrong place. Moving them from City to Contact
+                        dd.data[19] = dd.data[19] + dd.data[15] + "; ";
+                        dd.data[15] = "";
+                        // streetName must be null??
+                        //             dd.data[14] = "";
+                    }
+                }
+
+                // Put emails in the right column
+                if (dd.data[13] != "")
+                {
+                    transferEmails(ref dd.data[13], ref dd.data[19]);
+                }
+                if (dd.data[14] != "")
+                {
+                    transferEmails(ref dd.data[14], ref dd.data[19]);
+                }
+
                 if (dd.data[0] == "http://www.dealfind.com/toronto")
                 {
                     if ((dd.data[14] == "") && (dd.data[16] == ""))
@@ -1442,7 +1496,7 @@ namespace PlayingWithCsharp
                             // Contacts are in the wrong place. Moving them from City to Contact
                             if (dd.data[19] == "")
                                 dd.data[19] = dd.data[15];
-                            else
+                            else if (dd.data[19].IndexOf(dd.data[15]) == -1)
                                 dd.data[19] = dd.data[19] + "; " + dd.data[15];
                             dd.data[15] = "";
                         }
@@ -1451,21 +1505,11 @@ namespace PlayingWithCsharp
                             // Contacts are in the wrong place. Moving them from Province to Contact
                             if (dd.data[19] == "")
                                 dd.data[19] = dd.data[43];
-                            else
+                            else if (dd.data[19].IndexOf(dd.data[43]) == -1)
                                 dd.data[19] = dd.data[19] + ", " + dd.data[43];
                             dd.data[43] = "";
                         }
                     }
-                }
-
-// Put emails in the right column
-                if (dd.data[13] != "")
-                {
-                    transferEmails(ref dd.data[13], ref dd.data[19]);
-                }
-                if (dd.data[14] != "")
-                {
-                    transferEmails(ref dd.data[14], ref dd.data[19]);
                 }
 
 //  if Latitude contains both Lat and Longitude data, Longitude field is empty
@@ -1921,7 +1965,7 @@ namespace PlayingWithCsharp
                 if ((contact == "") || (contact == "{:-("))
                     contact = aux.Substring(b, e - b + 1);
                 else
-                    contact = contact + "; " + aux.Substring(b, e - b + 1);
+                    contact = aux.Substring(b, e - b + 1) + "; " + contact;
                 aux = aux.Replace(aux.Substring(b, e - b + 1), "");
                 RemoveSpaces(ref aux);
                 b = aux.IndexOf("@");
@@ -2859,9 +2903,9 @@ namespace PlayingWithCsharp
 
 
 
-            for (int i = 0; i < ListTags.Count; i++)
+      //      for (int i = 0; i < ListTags.Count; i++)
             {
-      //          int i = 1;
+                int i = 0;
                 string website = ListTags.ElementAt(i).data[0];
                 Extraction site = new Extraction(ListTags.ElementAt(i), baseaddress.ElementAt(i));
 //                string website = ListTags.ElementAt(i).data[0];
