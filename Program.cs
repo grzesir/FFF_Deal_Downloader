@@ -7,6 +7,7 @@ using System.IO;
 using System.Data.SqlClient;
 using System.Net;
 using System.Globalization;
+using System.Reflection;
 
 namespace PlayingWithCsharp
 {
@@ -82,10 +83,10 @@ namespace PlayingWithCsharp
     // Tags_attribtes data structure - This data structure contains, for each website, the tags that refer to the information we need to extract
     public class Tags
     {
-        public string[] data = new string[44];
+        public string[] data = new string[50];
         public Tags()
         {
-            for (int i = 0; i < 44; i++) data[i] = "";
+            for (int i = 0; i < 50; i++) data[i] = "";
         }
 
 /*        public string Website="";
@@ -137,6 +138,7 @@ namespace PlayingWithCsharp
         string keyword = "";
         char type = ' ';
         char direction = '>';
+        int index = -1; // if keyword contais a reference to a DealData data ($), index will contain the DealData position of that data. 
         public int GetTimes()
         {
             return (this.times);
@@ -144,6 +146,14 @@ namespace PlayingWithCsharp
         public void SetTimes(int i)
         {
             this.times = i;
+        }
+        public int GetIndex()
+        {
+            return (this.index);
+        }
+        public void SetIndex(int i)
+        {
+            this.index = i;
         }
         public string GetKeyword()
         {
@@ -173,84 +183,6 @@ namespace PlayingWithCsharp
 
     public class MainOperations
     {
-        public static keywords GetSearchString(string str, ref int c1)
-        {
-            keywords k = new keywords();
-            if (c1 > str.Length)
-            {
-                Console.WriteLine("Mistake at the end of Search keyword (?).");
-                k.SetTimes(-1);
-                return(k);
-            }
-            while (str[c1] == ' ')
-            {
-                c1 += 1;
-            }
-            if (str[c1] == '<')
-            {
-                k.SetDirection('<');
-                c1 += 1;
-                while (str[c1] == ' ')
-                {
-                    c1 += 1;
-                }
-            }
-            if ((str[c1] >= '1') && (str[c1] <= '9'))
-            {
-                do
-                {
-                    k.SetTimes(10 * k.GetTimes() + (str[c1] - 48));
-                    c1 += 1;
-                } while ((str[c1] >= '1') && (str[c1] <= '9'));
-                while (str[c1] == ' ')
-                {
-                    c1 += 1;
-                }
-            }
-            if (str[c1] == '$')
-            {
-                int c2;
-                c1 += 1;
-                c2 = c1 + 1;
-                if ((str[c2] >= '0') && (str[c2] <= '9'))
-                {
-                    k.SetKeyword(str.Substring(c1, 2));
-                    c1 += 1;
-                }
-                else
-                    k.SetKeyword(str.Substring(c1, 1));
-
-                if (k.GetTimes() == 0) k.SetTimes(1);
-                k.SetType('?');
-                c1 += 1;
-            }
-            else if (str[c1] == '"')
-            {
-                int c2 = c1;
-                c1 += 1;
-                do 
-                {
-                    c2 = str.IndexOf('"', c2 + 1);
-                    if (c2 == -1)
-                    {
-                        Console.WriteLine("Missing \" in Search keyword. Can't go on.");
-                        k.SetTimes(-1);
-                        return(k);
-                    }
-                } while (str[c2 - 1] == '\\');
-                k.SetKeyword(str.Substring(c1,c2-c1));
-                k.SetKeyword(k.GetKeyword().Replace("\\\"", "\""));
-                if (k.GetTimes() == 0) k.SetTimes(1);
-                k.SetType('?');
-                c1 = c2 + 1;
-            }
-            else
-            {
-                Console.WriteLine("Error in Search tag (?) format. Probably missing \" at " + c1 + " character.");
-                k.SetTimes(-1);
-            }
-            return (k);
-        }
 
 /*        public static keywords GetEndString(string str, ref int c1, ref string read, int read_pos)
         {
@@ -321,12 +253,139 @@ namespace PlayingWithCsharp
             return (k);
         }
         */
-        public static keywords GetEndString(string str, ref int c1)
+    }
+    
+    public class Extraction
+    {
+        Tags oneWebsite;
+        string baseAddress;
+        List<int> RecursList = new List<int>();
+        string AtTheEnd;
+
+        public Extraction(Tags oneWebsite, string baseAddress)
+        {
+            this.oneWebsite = oneWebsite;
+            this.baseAddress = baseAddress;
+        }
+
+        public keywords GetSearchString(string str, ref int c1, Tags DealData, string read)
+        {
+            keywords k = new keywords();
+            if (c1 > str.Length)
+            {
+                Console.WriteLine("Mistake at the end of Search keyword (?).");
+                AtTheEnd += "ERROR: Mistake at the end of Search keyword (?).";
+                k.SetTimes(-1);
+                return (k);
+            }
+            while (str[c1] == ' ')
+            {
+                c1 += 1;
+            }
+            if (str[c1] == '<')
+            {
+                k.SetDirection('<');
+                c1 += 1;
+                while (str[c1] == ' ')
+                {
+                    c1 += 1;
+                }
+            }
+            if ((str[c1] >= '1') && (str[c1] <= '9'))
+            {
+                do
+                {
+                    k.SetTimes(10 * k.GetTimes() + (str[c1] - 48));
+                    c1 += 1;
+                } while ((str[c1] >= '1') && (str[c1] <= '9'));
+                while (str[c1] == ' ')
+                {
+                    c1 += 1;
+                }
+            }
+            if (str[c1] == '$')
+            {
+                int c2;
+                c1 += 1;
+                c2 = c1 + 1;
+                int num = -1;
+                if ((str[c2] >= '0') && (str[c2] <= '9') && (str[c1] >= '0') && (str[c1] <= '9'))
+                {
+                    num = Convert.ToInt16(str.Substring(c1, 2));
+                    c1 += 1;
+                }
+                else if ((str[c1] >= '0') && (str[c1] <= '9'))
+                {
+                    num = Convert.ToInt16(str.Substring(c1, 1));
+                }
+                else
+                {
+                    Console.WriteLine("Mistake at variable ($).");
+                    AtTheEnd += "ERROR: Mistake at variable ($).";
+                    k.SetTimes(-1);
+                    return (k);
+                }
+                if (DealData.data[num] == "")
+                {
+                    str = this.oneWebsite.data[num];
+                    if (!RecursList.Contains(num))
+                    {
+                        RecursList.Add(num);
+                        str = this.SingleDataExtraction(str, read, DealData);
+                        RecursList.Remove(num);
+                        DealData.data[num] = str;
+                    }
+                    else
+                    {
+                        Console.WriteLine("ERROR: Recursivity definition!" + str);
+                        AtTheEnd += "ERROR: Recursivity definition!" + str;
+                        k.SetTimes(-1);
+                        return (k);
+                    }
+                }
+                k.SetKeyword(DealData.data[num]);
+                k.SetIndex(num);
+                if (k.GetTimes() == 0) k.SetTimes(1);
+                k.SetType('?');
+                c1 += 1;
+            }
+            else if (str[c1] == '"')
+            {
+                int c2 = c1;
+                c1 += 1;
+                do
+                {
+                    c2 = str.IndexOf('"', c2 + 1);
+                    if (c2 == -1)
+                    {
+                        Console.WriteLine("Missing \" in Search keyword. Can't go on.");
+                        AtTheEnd += "ERROR: Missing \" in Search keyword. Can't go on.";
+                        k.SetTimes(-1);
+                        return (k);
+                    }
+                } while (str[c2 - 1] == '\\');
+                k.SetKeyword(str.Substring(c1, c2 - c1));
+                k.SetKeyword(k.GetKeyword().Replace("\\\"", "\""));
+                if (k.GetTimes() == 0) k.SetTimes(1);
+                k.SetType('?');
+                c1 = c2 + 1;
+            }
+            else
+            {
+                Console.WriteLine("Error in Search tag (?) format. Probably missing \" at " + c1 + " character.");
+                AtTheEnd += "ERROR: Error in Search tag (?) format. Probably missing \" at " + c1 + " character.";
+                k.SetTimes(-1);
+            }
+            return (k);
+        }
+
+        public keywords GetEndString(string str, ref int c1)
         {
             keywords k = new keywords();
             if (c1 > str.Length)
             {
                 Console.WriteLine("Mistake at the end of End keyword (@).");
+                AtTheEnd += "ERROR: Mistake at the end of End keyword (@).";
                 k.SetTimes(-1);
                 return (k);
             }
@@ -337,6 +396,7 @@ namespace PlayingWithCsharp
             if (str[c1] == '<')
             {
                 Console.WriteLine("ERROR: End delimiter can't search back.");
+                AtTheEnd += "ERROR: End delimiter can't search back.";
                 k.SetTimes(-1);
                 return (k);
             }
@@ -362,6 +422,7 @@ namespace PlayingWithCsharp
                     if (c2 == -1)
                     {
                         Console.WriteLine("Missing \" in End keyword. Can't go on.");
+                        AtTheEnd += "ERROR: Missing \" in End keyword. Can't go on.";
                         k.SetTimes(-1);
                         return (k);
                     }
@@ -375,17 +436,19 @@ namespace PlayingWithCsharp
             else
             {
                 Console.WriteLine("Error in End tag (@) format. Probably missing \" at " + c1 + " character.");
+                AtTheEnd += "ERROR: Error in End tag (@) format. Probably missing \" at " + c1 + " character.";
                 k.SetTimes(-1);
             }
             return (k);
         }
 
-        public static string GetConstant(string str, ref int c1)
+        public string GetConstant(string str, ref int c1)
         {
             string str_new = "";
             if (c1 > str.Length)
             {
                 Console.WriteLine("Mistake at the end of #constant/@- keyword.");
+                AtTheEnd += "ERROR: Mistake at the end of #constant/@- keyword.";
                 return ("{:-(");
             }
             while (str[c1] == ' ')
@@ -402,26 +465,30 @@ namespace PlayingWithCsharp
                     if (c2 == -1)
                     {
                         Console.WriteLine("Missing \" in #Constant/@- keyword. Can't go on.");
+                        AtTheEnd += "ERROR: Missing \" in #Constant/@- keyword. Can't go on.";
                         return ("{:-(");
                     }
                 } while (str[c2 - 1] == '\\');
-                str_new = str.Substring(c1, c2-c1);
+                str_new = str.Substring(c1, c2 - c1);
                 c1 = c2 + 1;
             }
             else
             {
                 Console.WriteLine("Error in #Constant tag format. Probably missing \" at " + c1 + " character.");
+                AtTheEnd += "ERROR: Error in #Constant tag format. Probably missing \" at " + c1 + " character.";
                 return ("{:-(");
             }
+            str_new = str_new.Replace("\\|","|");
             return (str_new);
         }
 
-        public static string GetRepeatedOperation(string str, ref int c1, ref string read)
+        public string GetRepeatedOperation(string str, ref int c1, ref string read)
         {
             string str_new = "";
             if (c1 > str.Length)
             {
                 Console.WriteLine("Mistake at the end of ( keyword.");
+                AtTheEnd += "ERROR: Mistake at the end of ( keyword.";
                 return ("{:-(");
             }
             int c2 = c1 - 1;
@@ -431,6 +498,7 @@ namespace PlayingWithCsharp
                 if (c2 == -1)
                 {
                     Console.WriteLine("Missing ). Can't go on.");
+                    AtTheEnd += "ERROR: Missing ). Can't go on.";
                     return ("{:-(");
                 }
             } while (str[c2 - 1] == '\\');
@@ -440,17 +508,17 @@ namespace PlayingWithCsharp
             if ((c2 < str.Length) && (str[c2] == '-'))
             {
                 c2 += 1;
-                keywords aux = MainOperations.GetEndString(str, ref c2);
+                keywords aux = GetEndString(str, ref c2);
                 int aux_pos = 0;
                 while (aux.GetTimes() > 0)
                 {
                     aux.SetTimes(aux.GetTimes() - 1);
                     aux_pos = read.IndexOf(aux.GetKeyword(), aux_pos);
-//                    if (aux_pos == -1)
-//                    {
-//                        Console.WriteLine("The data you are looking for can not be found in the HTML file");
-//                        return("{:-(");
-//                    }
+                    //                    if (aux_pos == -1)
+                    //                    {
+                    //                        Console.WriteLine("The data you are looking for can not be found in the HTML file");
+                    //                        return("{:-(");
+                    //                    }
                     if (aux_pos > 0)
                         aux_pos += aux.GetKeyword().Length;
                 }
@@ -463,25 +531,21 @@ namespace PlayingWithCsharp
             c1 = c2;
             return (str_new);
         }
-    }
-    
-    public class Extraction
-    {
-        Tags oneWebsite;
-        string baseAddress;
-        public Extraction(Tags oneWebsite, string baseAddress)
-        {
-            this.oneWebsite = oneWebsite;
-            this.baseAddress = baseAddress;
-        }
 
         public string SingleDataExtraction(string str, string read)
         {
             int aux = 0;
-            return (SingleDataExtraction(str, read, ref aux));
+            Tags DealData = new Tags();
+            return (SingleDataExtraction(str, read, DealData, ref aux));
         }
 
-        public string SingleDataExtraction(string str, string read, ref int position)
+        public string SingleDataExtraction(string str, string read, Tags DealData)
+        {
+            int aux = 0;
+            return (SingleDataExtraction(str, read, DealData, ref aux));
+        }
+
+        public string SingleDataExtraction(string str, string read, Tags DealData, ref int position)
         {
             int read_pos = position;
             int pos_ini = position;
@@ -494,6 +558,8 @@ namespace PlayingWithCsharp
             string temp_str = "";
             string temp_result = "";
             string err_not_found = "";
+            string temp_read = read;
+            string separator = "\n";
             while ((c < str.Length) || (op_rep))
             {
                 if ((op_rep) && (c >= str.Length))
@@ -501,7 +567,9 @@ namespace PlayingWithCsharp
                     if (read_pos != -1)
                     {
                         c = 0;
-                        temp_result = temp_result + result + "\n";
+                        RemoveTags(ref result);
+                        RemoveAmpersand(ref result);
+                        temp_result = temp_result + result + separator;
                         result = "";
                     }
                     else
@@ -509,11 +577,11 @@ namespace PlayingWithCsharp
                         op_rep = false;
                         c = temp_c;
                         str = temp_str;
+                        RemoveTags(ref result);
+                        RemoveAmpersand(ref result);
                         if (result != "")
                         {
                             temp_result = temp_result + result;
-                            RemoveTags(ref temp_result);
-                            RemoveAmpersand(ref temp_result);
                         }
                         result = temp_result;
 //                        return (temp_result);
@@ -524,15 +592,21 @@ namespace PlayingWithCsharp
                 {
                     if (((c + 1) < str.Length) && (str[c + 1] == '|') && (!op_rep))
                     {
-                        RemoveTags(ref result);
-                        if (result == "http://")
+                        if (err_not_found != "")
                             result = "";
-                        if (result != "")
+                        else
                         {
-                            c = str.Length;
-                            continue;
+                            RemoveTags(ref result);
+                            if (result == "http://")
+                                result = "";
+                            if (result != "")
+                            {
+                                c = str.Length;
+                                continue;
+                            }
                         }
                         read_pos = pos_ini;
+                        read = temp_read;
                         err_not_found = "";
                         c += 2;
                         search = new keywords();
@@ -542,6 +616,7 @@ namespace PlayingWithCsharp
                     else
                     {
                         Console.WriteLine("Mistake at the Tag/Keyword (|).");
+                        AtTheEnd += "ERROR: Mistake at the Tag/Keyword (|).";
                         return ("{:-(");
                     }
                 }
@@ -551,8 +626,13 @@ namespace PlayingWithCsharp
                 {
                     string r;
                     c += 1;
-                    r = MainOperations.GetRepeatedOperation(str, ref c, ref read);
+                    r = GetRepeatedOperation(str, ref c, ref read);
                     op_rep = true;
+                    if ((c < str.Length) && (str[c] == ','))
+                    {
+                        c += 1;
+                        separator = GetConstant(str, ref c);
+                    }
                     // store the values of str and c to handle it after finishing the repeated operation
                     temp_str = str;
                     temp_c = c;
@@ -569,15 +649,99 @@ namespace PlayingWithCsharp
                     c += 1;
                     continue;
                 }
+
+                else if (str[c] == '$')
+                {
+                    int c2;
+                    c = c + 1;
+                    c2 = c + 1;
+                    int num = -1;
+                    if ((str[c2] >= '0') && (str[c2] <= '9') && (str[c] >= '0') && (str[c] <= '9'))
+                    {
+                        num = Convert.ToInt16(str.Substring(c, 2));
+                        c += 1;
+                    }
+                    else if ((str[c] >= '0') && (str[c] <= '9'))
+                    {
+                        num = Convert.ToInt16(str.Substring(c, 1));
+                    }
+                    else
+                    {
+                        Console.WriteLine("Mistake at variable ($): Missing number.");
+                        AtTheEnd += "ERROR: Mistake at variable ($): Missing number.";
+                        if ((c < str.Length) && (str[c] != '|'))
+                        {
+                            do
+                            {
+                                c = str.IndexOf('|', c + 1);
+                            } while ((c != -1) && (str[c - 1] == '\\'));
+                        }
+                        if (c == -1)
+                            c = str.Length;
+                        err_not_found = "Mistake at variable ($): Missing number.";
+                        continue;
+                    }
+                    if (DealData.data[num] == "")
+                    {
+                        string str2 = this.oneWebsite.data[num];
+                        if (!RecursList.Contains(num))
+                        {
+                            RecursList.Add(num);
+                            str2 = this.SingleDataExtraction(str2, read, DealData);
+                            RecursList.Remove(num);
+                            DealData.data[num] = str2;
+                        }
+                        else
+                        {
+                            Console.WriteLine("ERROR: Recursivity definition!" + str2);
+                            AtTheEnd += "ERROR: Recursivity definition!" + str2;
+                            if ((c < str.Length) && (str[c] != '|'))
+                            {
+                                do
+                                {
+                                    c = str.IndexOf('|', c + 1);
+                                } while ((c != -1) && (str[c - 1] == '\\'));
+                            }
+                            if (c == -1)
+                                c = str.Length;
+                            err_not_found = "ERROR: Recursivity definition!";
+                            continue;
+                        }
+                    }
+                    result = result + DealData.data[num];
+                    c += 1;
+                }
+
+
+                // reseting source page position.
+                else if (str[c] == '0')
+                {
+                    read_pos = pos_ini;
+                    read = temp_read;
+                    c += 1;
+                    continue;
+                }
                 // getting the constant string that must be added to the information we are looking for
                 else if (str[c] == '#')
                 {
                     string r;
                     c += 1;
-                    r = MainOperations.GetConstant(str, ref c);
+                    r = GetConstant(str, ref c);
                     if (r == "{:-(")
                     {
-                        return ("{:-("); // ends the Thread?
+                        Console.WriteLine("Constant (#) not found.");
+                        AtTheEnd += "Constant (#) not found.";
+                        if ((c < str.Length) && (str[c] != '|'))
+                        {
+                            do
+                            {
+                                c = str.IndexOf('|', c + 1);
+                            } while ((c != -1) && (str[c - 1] == '\\'));
+                        }
+                        if (c == -1)
+                            c = str.Length;
+                        err_not_found = "Constant (#) not found.";
+                        continue;
                     }
                     result = result + r;
                     continue;
@@ -587,16 +751,54 @@ namespace PlayingWithCsharp
                 {
                     while (search.GetTimes() > 0)
                     {
-                        search.SetTimes(search.GetTimes() - 1);
+                        int saved_pos = read_pos;
                         // search for the current keyword on html page. Variable search (Keywords) will be overwritten 
                         if (search.GetDirection() == '>')
                         {
+                            int optional = 0;
                             if (read_pos == -1)
                                 break;
                             read_pos = read.IndexOf(search.GetKeyword(), read_pos);
+                            if (read_pos == -1) // some cases, there are more than one value to be searched (when $ is used) and the || is the separator of those values
+                            {
+                                int begin_opt = 0;
+                                optional = search.GetKeyword().IndexOf("||");
+                                while (optional != -1)
+                                {
+                                    read_pos = read.IndexOf(search.GetKeyword().Substring(begin_opt, optional - begin_opt), saved_pos);
+                                    if (read_pos != -1)
+                                    {
+                                        if (begin_opt != 0)
+                                        {
+                                            string k = search.GetKeyword();
+                                            string s = k.Substring(begin_opt, optional - begin_opt);
+                                            k = k.Replace("||" + s, "");
+                                            k = s + "||" + k;   // put the optional keyword at the front, because this is the one that was found on HTML page and this is the correct search one. Only the front one will be kept later. 
+                                            if (search.GetIndex() != -1)
+                                                DealData.data[search.GetIndex()] = k;
+                                        }
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        if (optional >= search.GetKeyword().Length)
+                                            optional = -1;
+                                        else
+                                        {
+                                            begin_opt = optional + 2;
+                                            optional = search.GetKeyword().IndexOf("||", begin_opt);
+                                            if ((optional == -1) && (begin_opt < search.GetKeyword().Length)) // this is the last element, that is why optionao is not -1 now
+                                                optional = search.GetKeyword().Length;
+                                        }
+                                    }
+                                }
+                            }
                             if (read_pos == -1)
                             {
-                                c = str.IndexOf('|',c);
+                                do
+                                {
+                                    c = str.IndexOf('|', c + 1);
+                                } while ((c != -1) && (str[c - 1] == '\\'));
                                 position = read_pos;
                                 if (c == -1)
                                     c = str.Length;
@@ -606,38 +808,85 @@ namespace PlayingWithCsharp
                                     break;
                                 }
                                 err_not_found = "The data you are looking for can not be found in the HTML file";
-//                                Console.WriteLine("The data you are looking for can not be found in the HTML file");
+                                //                                Console.WriteLine("The data you are looking for can not be found in the HTML file");
                                 break;
-//                                return ("{:-("); //ends the Thread?
+                                //                                return ("{:-("); //ends the Thread?
                             }
                             read_pos += search.GetKeyword().Length;
                         }
                         else
                         {
+                            int begin_opt = 0;
+                            int optional = 0;
                             if (read_pos == -1)
                                 break;
                             read_pos = read.LastIndexOf(search.GetKeyword(), read_pos);
+                            if (read_pos == -1) // some cases, there are more than one value to be searched and the || is the separator of those values
+                            {
+                                optional = search.GetKeyword().IndexOf("||");
+                                while (optional != -1)
+                                {
+                                    read_pos = read.LastIndexOf(search.GetKeyword().Substring(begin_opt, optional - begin_opt), saved_pos);
+                                    if (read_pos != -1)
+                                    {
+                                        if (begin_opt != 0)
+                                        {
+                                            string k = search.GetKeyword();
+                                            string s = k.Substring(begin_opt, optional - begin_opt);
+                                            k = k.Replace("||" + s, "");
+                                            k = s + "||" + k;   // put the optional keyword at the front, because this is the one that was found on HTML page and this is the correct search one. Only the front one will be kept later. 
+                                            if (search.GetIndex() != -1)
+                                                DealData.data[search.GetIndex()] = k;
+                                        }
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        if (optional >= search.GetKeyword().Length)
+                                            optional = -1;
+                                        else
+                                        {
+                                            begin_opt = optional + 2;
+                                            optional = search.GetKeyword().IndexOf("||", begin_opt);
+                                            if ((optional == -1) && (begin_opt < search.GetKeyword().Length))
+                                                optional = search.GetKeyword().Length;
+                                        }
+                                    }
+                                }
+                            }
                             if (read_pos == -1)
                             {
-                                c = str.IndexOf('|',c);
+                                do
+                                {
+                                    c = str.IndexOf('|', c + 1);
+                                } while ((c != -1) && (str[c - 1] == '\\'));
                                 position = read_pos;
                                 if (c == -1)
                                     c = str.Length;
                                 err_not_found = "The data you are looking for can not be found in the HTML file";
- //                               Console.WriteLine("The data you are looking for can not be found in the HTML file");
-    //                            c += 1;
+                                //                               Console.WriteLine("The data you are looking for can not be found in the HTML file");
+                                //                            c += 1;
                                 break;
-//                                return("{:-("); //ends the Thread?
+                                //                                return("{:-("); //ends the Thread?
                             }
                             else
                                 read_pos += search.GetKeyword().Length;
+                        }
+                        byte[] tempBytes = System.Text.Encoding.GetEncoding("ISO-8859-8").GetBytes(search.GetKeyword());
+                        string normal = System.Text.Encoding.UTF8.GetString(tempBytes);
+                        if ((normal == search.GetKeyword()) || (read_pos != -1))
+                            search.SetTimes(search.GetTimes() - 1);
+                        else
+                        {
+                            read_pos = saved_pos;
+                            search.SetKeyword(normal);
                         }
                     }
                     if ((c >= str.Length) || (read_pos == -1))
                         continue;
                     c += 1;
                     search = new keywords();
-                    search = MainOperations.GetSearchString(str, ref c);
+                    search = GetSearchString(str, ref c, DealData, read);
 //                    if (search.GetTimes() == -1)
 //                    {
 //                        return; // ends the Thread?
@@ -646,7 +895,7 @@ namespace PlayingWithCsharp
                     if ((c < str.Length) && (str[c] == '-'))
                     {
                         c += 1;
-                        string tillHere = MainOperations.GetConstant(str, ref c);
+                        string tillHere = GetConstant(str, ref c);
                         if (read_pos != -1)
                         {
                             int aux_pos = read.IndexOf(tillHere, read_pos);
@@ -672,19 +921,65 @@ namespace PlayingWithCsharp
                     //                    }
 
                     // Start extracting cities
-                    end = MainOperations.GetEndString(str, ref c);
+                    end = GetEndString(str, ref c);
                     while (search.GetTimes() > 0)
                     {
-                        search.SetTimes(search.GetTimes() - 1);
+                        int saved_pos = read_pos;
                         // search for the current keyword on html page. Variable search (Keywords) will be overwritten 
                         if (search.GetDirection() == '>')
                         {
+                            int begin_opt = 0;
+                            int optional = 0;
                             if (read_pos == -1)
                                 break;
                             read_pos = read.IndexOf(search.GetKeyword(), read_pos);
+                            if (read_pos == -1) // some cases, there are more than one value to be searched and the || is the separator of those values
+                            {
+                                optional = search.GetKeyword().IndexOf("||");
+                                while (optional != -1)
+                                {
+                                    read_pos = read.IndexOf(search.GetKeyword().Substring(begin_opt, optional - begin_opt), saved_pos);
+                                    if (read_pos != -1)
+                                    {
+                                        if (begin_opt != 0)
+                                        {
+                                            string k = search.GetKeyword();
+                                            string s = k.Substring(begin_opt, optional - begin_opt);
+                                            k = k.Replace("||" + s, "");
+                                            k = s + "||" + k;   // put the optional keyword at the front, because this is the one that was found on HTML page and this is the correct search one. Only the front one will be kept later. 
+                                            if (search.GetIndex() != -1)
+                                                DealData.data[search.GetIndex()] = k;
+                                        }
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        if (optional >= search.GetKeyword().Length)
+                                            optional = -1;
+                                        else
+                                        {
+                                            begin_opt = optional + 2;
+                                            optional = search.GetKeyword().IndexOf("||", begin_opt);
+                                            if ((optional == -1) && (begin_opt < search.GetKeyword().Length))
+                                                optional = search.GetKeyword().Length;
+                                        }
+                                    }
+                                }
+                            }
                             if (read_pos == -1)
                             {
-                                c = str.IndexOf('|',c);
+                                if ((c < str.Length) && (str[c] != '|'))
+                                {
+                                    do
+                                    {
+                                        if (c + 1 < str.Length)
+                                        {
+                                            c = str.IndexOf('|', c + 1);
+                                        }
+                                        else
+                                            c = -1;
+                                    } while ((c != -1) && (str[c - 1] == '\\'));
+                                }
                                 position = read_pos;
                                 if (c == -1)
                                     c = str.Length;
@@ -702,22 +997,77 @@ namespace PlayingWithCsharp
                         }
                         else
                         {
+                            int begin_opt = 0;
+                            int optional = 0;
                             if (read_pos == -1)
                                 break;
                             read_pos = read.LastIndexOf(search.GetKeyword(), read_pos);
+                            if (read_pos == -1) // some cases, there are more than one value to be searched and the || is the separator of those values
+                            {
+                                optional = search.GetKeyword().IndexOf("||");
+                                while (optional != -1)
+                                {
+                                    read_pos = read.LastIndexOf(search.GetKeyword().Substring(begin_opt, optional - begin_opt), saved_pos);
+                                    if (read_pos != -1)
+                                    {
+                                        if (begin_opt != 0)
+                                        {
+                                            string k = search.GetKeyword();
+                                            string s = k.Substring(begin_opt, optional - begin_opt);
+                                            k = k.Replace("||" + s, "");
+                                            k = s + "||" + k;   // put the optional keyword at the front, because this is the one that was found on HTML page and this is the correct search one. Only the front one will be kept later. 
+                                            if (search.GetIndex() != -1)
+                                                DealData.data[search.GetIndex()] = k;
+                                        }
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        if (optional >= search.GetKeyword().Length)
+                                            optional = -1;
+                                        else
+                                        {
+                                            begin_opt = optional + 2;
+                                            optional = search.GetKeyword().IndexOf("||", begin_opt);
+                                            if ((optional == -1) && (begin_opt < search.GetKeyword().Length))
+                                                optional = search.GetKeyword().Length;
+                                        }
+                                    }
+                                }
+                            }
                             if (read_pos == -1)
                             {
-                                c = str.IndexOf('|',c);
+                                if ((c < str.Length) && (str[c] != '|'))
+                                {
+                                    do
+                                    {
+                                        if (c + 1 < str.Length)
+                                        {
+                                            c = str.IndexOf('|', c + 1);
+                                        }
+                                        else
+                                            c = -1;
+                                    } while ((c != -1) && (str[c - 1] == '\\'));
+                                }
                                 position = read_pos;
                                 if (c == -1)
                                     c = str.Length;
                                 err_not_found = "The data you are looking for can not be found in the HTML file";
-  //                              Console.WriteLine("The data you are looking for can not be found in the HTML file");
+                                //                              Console.WriteLine("The data you are looking for can not be found in the HTML file");
                                 break;
                                 //                                return("{:-("); //ends the Thread?
                             }
                             else
                                 read_pos += search.GetKeyword().Length;
+                        }
+                        byte[] tempBytes = System.Text.Encoding.GetEncoding("ISO-8859-8").GetBytes(search.GetKeyword());
+                        string normal = System.Text.Encoding.UTF8.GetString(tempBytes);
+                        if ((normal == search.GetKeyword()) || (read_pos != -1))
+                            search.SetTimes(search.GetTimes() - 1);
+                        else
+                        {
+                            read_pos = saved_pos;
+                            search.SetKeyword(normal);
                         }
                     }
 
@@ -730,6 +1080,22 @@ namespace PlayingWithCsharp
                     {
                         continue;
                     }
+
+                    if ((c < str.Length) && (str[c] == '-'))
+                    {
+                        c += 1;
+                        string tillHere = GetConstant(str, ref c);
+                        if (read_pos != -1)
+                        {
+                            int aux_pos = read.IndexOf(tillHere, read_pos);
+                            if (aux_pos != -1)
+                            {
+                                aux_pos += tillHere.Length;
+                                read = read.Substring(0, aux_pos);
+                            }
+                        }
+                    }
+
                     end_pos = read_pos;
 
                     while (end.GetTimes() > 0)
@@ -742,7 +1108,13 @@ namespace PlayingWithCsharp
                         position = end_pos;
                         if (end_pos == -1)
                         {
-                            c = str.IndexOf('|', c);
+                            if ((c < str.Length) && (str[c] != '|'))
+                            {
+                                do
+                                {
+                                    c = str.IndexOf('|', c + 1);
+                                } while ((c != -1) && (str[c - 1] == '\\'));
+                            }
                             if (c == -1)
                                 c = str.Length;
                             err_not_found = "The data you are looking for can not be found in the HTML file";
@@ -766,6 +1138,7 @@ namespace PlayingWithCsharp
                 else
                 {
                     Console.WriteLine("Mistake: Unrecognized " + str[c] + " at Tag/Keyword");
+                    AtTheEnd += "ERROR: Mistake: Unrecognized " + str[c] + " at Tag/Keyword";
                     return ("{:-(");
                 }
             }
@@ -786,7 +1159,6 @@ namespace PlayingWithCsharp
             result = result.Replace("<p>", "\n");
             result = result.Replace("</p>", "\n\n");
             result = result.Replace("</li>", "\n");
-            result = result.Replace("<td>", "");
             result = result.Replace("</td>", "; ");
             result = result.Replace("<i>", "");
             result = result.Replace("</i>", "");
@@ -805,11 +1177,33 @@ namespace PlayingWithCsharp
             result = result.Replace("</em>", "\n\n");
             result = result.Replace("%20", " ");
 
-            string htmlTag = "<div";
+            string htmlTag = "<td";
             int i = result.IndexOf(htmlTag);
             while (i != -1)
             {
                 int j = result.IndexOf(">", i+1);
+                if (j != -1)
+                    result = result.Replace(result.Substring(i, j - i + 1), "");
+                else
+                    result = result.Replace(result.Substring(i, result.Length - i), "");
+                i = result.IndexOf(htmlTag);
+            }
+            htmlTag = "<div";
+            i = result.IndexOf(htmlTag);
+            while (i != -1)
+            {
+                int j = result.IndexOf(">", i + 1);
+                if (j != -1)
+                    result = result.Replace(result.Substring(i, j - i + 1), "");
+                else
+                    result = result.Replace(result.Substring(i, result.Length - i), "");
+                i = result.IndexOf(htmlTag);
+            }
+            htmlTag = "<p";
+            i = result.IndexOf(htmlTag);
+            while (i != -1)
+            {
+                int j = result.IndexOf(">", i + 1);
                 if (j != -1)
                     result = result.Replace(result.Substring(i, j - i + 1), "");
                 else
@@ -901,18 +1295,20 @@ namespace PlayingWithCsharp
                 int j = result.IndexOf(">", i + 1);
                 if (j != -1)
                 {
+                    while ((j < result.Length) && ((result[j] == ' ') || (result[j] == '\t')))
+                        j++;
                     if (j > i + 3)
-                        result = result.Replace(result.Substring(i + 3, j - i + 3), " ");
+                        result = result.Replace(result.Substring(i + 3, j - i - 3), "");
                     i = result.IndexOf(htmlTag, i + 1);
                 }
                 else
                 {
-                    result = result.Replace(result.Substring(i, result.Length - i), " ");
+                    result = result.Replace(result.Substring(i, result.Length - i), "");
                     i = result.IndexOf(htmlTag, i + 1);
                 }
             }
 
-            RemoveSpaces(ref result);
+            RemoveSpaces(ref result, false);
         }
 
         private void RemoveAmpersand(ref string result)
@@ -925,25 +1321,39 @@ namespace PlayingWithCsharp
             result = result.Replace("&lt;", "<");
             result = result.Replace("&gt;", ">");
             result = result.Replace("&tilde;", "~");
-            RemoveSpaces(ref result);
+            RemoveSpaces(ref result, false);
         }
 
         
-        private void RemoveSpaces(ref string temp_result)
+        private void RemoveSpaces(ref string temp_result, Boolean ponctuation) // Ponctuation indicates if it has to remove ponctuation characters. It must be true only when handling the data and false when extracting from webpages
         {
             int b = 0;
             int e = temp_result.Length - 1;
             if ((e == 0) && (temp_result[0] != ' ') && (temp_result[0] != '\n') && (temp_result[0] != '\t'))
                 return;
-            while ((b <= e) && ((temp_result[b] == ' ') || (temp_result[b] == 160) || (temp_result[b] == '\n') || (temp_result[b] == '\t') || (isPunctuation(temp_result[b]))))
+            if (ponctuation)
             {
-                b+=1;
+                while ((b <= e) && ((temp_result[b] == ' ') || (temp_result[b] == 160) || (temp_result[b] == '\n') || (temp_result[b] == '\t') || (temp_result[b] == '|') || (isPunctuation(temp_result[b]))))
+                {
+                    b += 1;
+                }
+                while ((e > b) && ((temp_result[e] == ' ') || (temp_result[e] == 160) || (temp_result[e] == '\n') || (temp_result[e] == '\t') || (temp_result[b] == '|') || (isPunctuation(temp_result[e]))))
+                {
+                    e -= 1;
+                }
             }
-            while ((e > b) && ((temp_result[e] == ' ') || (temp_result[e] == '\n') || (temp_result[e] == '\t')))
+            else
             {
-                e -= 1;
+                while ((b <= e) && ((temp_result[b] == ' ') || (temp_result[b] == 160) || (temp_result[b] == '\n') || (temp_result[b] == '\t') || (temp_result[b] == '|')))
+                {
+                    b += 1;
+                }
+                while ((e > b) && ((temp_result[e] == ' ') || (temp_result[e] == 160) || (temp_result[e] == '\n') || (temp_result[e] == '\t') || (temp_result[b] == '|')))
+                {
+                    e -= 1;
+                }
             }
-            if (e > b)
+            if (e >= b)
                 temp_result = temp_result.Substring(b, (e + 1) - b);
             else
                 temp_result = "";
@@ -958,6 +1368,8 @@ namespace PlayingWithCsharp
 
         string DownloadData(string URL)
         {
+
+           
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(URL);
 //            request.UserAgent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.12) Gecko/20101026 Firefox/3";
             request.Accept = "Accept: text/html,application/xhtml+xml,application/xml";
@@ -989,7 +1401,25 @@ namespace PlayingWithCsharp
         public void ExtractingCities()
         {
             string read;
-            string AtTheEnd = "";
+            AtTheEnd = "";
+
+            // Some weblinks contains dots (.) and .NET simply remove it from URLs. The following code was included just to preserv the dot on links
+            MethodInfo getSyntax = typeof(UriParser).GetMethod("GetSyntax", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            FieldInfo flagsField = typeof(UriParser).GetField("m_Flags", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            if (getSyntax != null && flagsField != null)
+            {
+                foreach (string scheme in new[] { "http", "https" })
+                {
+                    UriParser parser = (UriParser)getSyntax.Invoke(null, new object[] { scheme });
+                    if (parser != null)
+                    {
+                        int flagsValue = (int)flagsField.GetValue(parser);
+                        // Clear the CanonicalizeAsFilePath attribute
+                        if ((flagsValue & 0x1000000) != 0)
+                            flagsField.SetValue(parser, flagsValue & ~0x1000000);
+                    }
+                }
+            }
 
             read = DownloadData(this.oneWebsite.data[0]);
            
@@ -1035,13 +1465,14 @@ namespace PlayingWithCsharp
 
             str = this.oneWebsite.data[2];
             temp = this.SingleDataExtraction(str, read);
-            if (temp == "{:-(")
+            if ((temp == "{:-(") || (temp == ""))
             {
                 Console.WriteLine("ERROR: Couldn't find cities in website " + this.oneWebsite.data[0]);
                 writer.WriteLine("ERROR: Couldn't find cities in website " + this.oneWebsite.data[0]);
                 writer.Close();
                 return;
             }
+            string sourceLocations = read;
             parts = temp.Split('\n');
             listOfCities = new List<string>();
             for (int i=0; i<parts.Length; i++)
@@ -1067,6 +1498,7 @@ namespace PlayingWithCsharp
                     string DealID = "";
                     int i;
                     Tags DealData = new Tags();
+                    DateTimeOffset extractedTime;
 
                     if (SideDeals.Count() > 0)
                     {
@@ -1075,10 +1507,11 @@ namespace PlayingWithCsharp
                         SideDeals.RemoveAt(0);
                     }
 
-       //                       URL = "http://www.dealfind.com/chicago/hawyeyechiropractic3";
+      //                       URL = "http://www.teambuy.ca/toronto/28135483/";
                     URL = baseAddress.Replace("$", part_URL);
                     // opening Website
                     read = DownloadData(URL);
+                    extractedTime = DateTimeOffset.Now;
 
                     if (read == "ERROR: Exception reading from webpage")
                     {
@@ -1099,8 +1532,16 @@ namespace PlayingWithCsharp
                         else
                         {
                             //  extract the side deals
+                            string relatedDeals = "";
                             str = this.oneWebsite.data[3];
                             temp = this.SingleDataExtraction(str, read);
+                            str = this.oneWebsite.data[40]; //related deals are handled as sidedeals
+                            relatedDeals = this.SingleDataExtraction(str, read);
+                            if ((relatedDeals != "{:-(") && (relatedDeals != ""))
+                                if (temp != "{:-(")
+                                    temp = temp + relatedDeals;
+                                else
+                                    temp = relatedDeals;
                             if (temp != "{:-(")
                             {
                                 List<string> tempSideDeals;
@@ -1128,7 +1569,7 @@ namespace PlayingWithCsharp
                                                 if (str[0] == '?')
                                                 {
                                                     c += 1;
-                                                    search = MainOperations.GetSearchString(str, ref c);
+                                                    search = GetSearchString(str, ref c, DealData, s);
                                                     while ((c < str.Length) && ((str[c] == ' ') || (str[c] == ';')))
                                                     {
                                                         c += 1;
@@ -1137,7 +1578,7 @@ namespace PlayingWithCsharp
                                                 if ((c < str.Length) && (str[c] == '@'))
                                                 {
                                                         c += 1;
-                                                        end = MainOperations.GetEndString(str, ref c);
+                                                        end = GetEndString(str, ref c);
                                                 }
                                                 int end_pos;
                                                 while (search.GetTimes() > 0)
@@ -1221,55 +1662,78 @@ namespace PlayingWithCsharp
                                         DealData.data[0] = this.oneWebsite.data[0];
                                         DealData.data[4] = DealID;
 
+                                        // DealData.data[1] will contain the extracted time. Index 1 is associated to invalid page. If page is valid, the extracted time will be stored
+                                        DealData.data[1] = extractedTime.ToString();
+
                                         Console.WriteLine(baseAddress.Replace("$", "") + " - " + item + " \tDealID - " + DealID);
 
                                         // Get the data / write to file
-                                        //             line = baseAddress.Replace("$","") + " | " + DealID + " | ";
-                                        for (int j = 5; j <= 40; j++)
+                                        for (int j = 5; j < 50; j++)
                                         {
- //                                           Console.Write(j + " ");
-                                            if (j == 39)
+//                                            Console.Write(j + " ");
+                                            if ((j == 31))
                                             {
                                                 Console.Write("");
                                             }
-                                            int read_pos = 0;
-                                            str = this.oneWebsite.data[j];
-                                            temp = this.SingleDataExtraction(str, read, ref read_pos);
-                                            // Data not expected: in case the extracted data is not the expected one, keep searching
-                                            if (j == 8)
+                                            if (j == 40)
+                                                j = 43;
+                                            if (DealData.data[j] == "")
                                             {
-                                                int has = temp.IndexOf("youtube.com");
-                                                if (has == -1)
-                                                    has = temp.IndexOf("wikipedia");
-                                                if (has != -1)
+                                                int read_pos = 0;
+                                                str = this.oneWebsite.data[j];
+                                                RecursList.Add(j);
+                                                temp = this.SingleDataExtraction(str, read, DealData, ref read_pos);
+                                                RecursList.Remove(j);
+                                                // Data not expected: in case the extracted data is not the expected one, keep searching
+                                                if (j == 8)
                                                 {
-                                                    str = ReduceInstruc(str);
-                                                }
-                                                while ((has != -1) && (read_pos != -1))
-                                                {
-                                                    temp = this.SingleDataExtraction(str, read, ref read_pos);
-                                                    has = temp.IndexOf("youtube.com");
+                                                    int has = temp.IndexOf("youtube.com");
                                                     if (has == -1)
                                                         has = temp.IndexOf("wikipedia");
+                                                    if (has != -1)
+                                                    {
+                                                        str = ReduceInstruc(str);
+                                                    }
+                                                    while ((has != -1) && (read_pos != -1))
+                                                    {
+                                                        RecursList.Add(j);
+                                                        temp = this.SingleDataExtraction(str, read, DealData, ref read_pos);
+                                                        RecursList.Remove(j);
+                                                        has = temp.IndexOf("youtube.com");
+                                                        if (has == -1)
+                                                            has = temp.IndexOf("wikipedia");
+                                                    }
                                                 }
+                                                if ((j < 36) || (j > 39))
+                                                {
+                                                    temp = temp.Replace("\n", ";");
+                                                    temp = temp.Replace("\t", " ");
+                                                }
+                                                temp = temp.Replace((char)8206, ' ');
+                                                while (temp.IndexOf("  ") != -1)
+                                                    temp = temp.Replace("  ", " ");
+                                                while (temp.IndexOf(" ,") != -1)
+                                                    temp = temp.Replace(" ,", ",");
+                                                while (temp.IndexOf(",,") != -1)
+                                                    temp = temp.Replace(",,", ",");
+                                                while (temp.IndexOf(" ;") != -1)
+                                                    temp = temp.Replace(" ;", ";");
+                                                if (j != 13)
+                                                {
+                                                    while (temp.IndexOf(";;") != -1)
+                                                        temp = temp.Replace(";;", ";");
+                                                }
+                                                DealData.data[j] = temp;
                                             }
-                                            // end Data not expected.
-                                            temp = temp.Replace("\n", "; ");
-                                            temp = temp.Replace("\t", " ");
-                                            temp = temp.Replace((char)8206, ' ');
-                                            while (temp.IndexOf("  ") != -1)
-                                                temp = temp.Replace("  ", " ");
-                                            while (temp.IndexOf(" ;") != -1)
-                                                temp = temp.Replace(" ;", ";");
-                                            while (temp.IndexOf(";;") != -1)
-                                                temp = temp.Replace(";;", ";");
-                                            DealData.data[j] = temp;
                                         }
-                                        // extract province
-                                        str = this.oneWebsite.data[43];
-                                        str = this.SingleDataExtraction(str, read);
-                                        DealData.data[43] = str;
-
+                                        if ((DealData.data[17] == "") || (DealData.data[17] == "{:-("))
+                                        {
+                                            str = this.oneWebsite.data[17];
+                                            RecursList.Add(17);
+                                            str = this.SingleDataExtraction(str, sourceLocations, DealData);
+                                            RecursList.Remove(17);
+                                            DealData.data[17] = str;
+                                        }
                                         listOfDeals.Add(DealData);
                                     }
                                 }
@@ -1280,8 +1744,11 @@ namespace PlayingWithCsharp
                     {
                         if (tries > 0)
                         {
-                            SideDeals.Add(TryLater.ElementAt(0));
-                            TryLater.RemoveAt(0);
+                            while (TryLater.Count > 0)
+                            {
+                                SideDeals.Add(TryLater.ElementAt(0));
+                                TryLater.RemoveAt(0);
+                            }
                             tries -= 1;
                         }
                         else 
@@ -1335,7 +1802,15 @@ namespace PlayingWithCsharp
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                myConnection = new SqlConnection("server=FIVEFINGERFINDS\\MEDIACONNECT; Trusted_Connection=yes; database=Deals; connection timeout=15");
+                try
+                {
+                    myConnection.Open();
+                }
+                catch (Exception error)
+                {
+                    Console.WriteLine(e.ToString());
+                }
             }
 
    //         int cont = 0;
@@ -1351,11 +1826,14 @@ namespace PlayingWithCsharp
 
 // Data Handling
 
-                for (int i = 1; i < 44; i++)
+                for (int i = 1; i < 50; i++)
                 {
+                    int b = dd.data[i].IndexOf("||");
+                    if (b != -1)
+                        dd.data[i] = dd.data[i].Remove(b);
                     if (dd.data[i] == "{:-(")
                         dd.data[i] = "";
-                    RemoveSpaces(ref dd.data[i]);
+                    RemoveSpaces(ref dd.data[i], true);
                     if(dd.data[i]==";") 
                         dd.data[i] = "";
                 }
@@ -1389,93 +1867,130 @@ namespace PlayingWithCsharp
                 if ((dd.data[18].Length == 30) && (dd.data[18] == "http://maps.google.com/maps?q="))
                     dd.data[18] = "";
 
+                if (dd.data[17].ToLower() == "usa")
+                    dd.data[17] = "United States";
 
-                if (dd.data[0] == "http://www.teambuy.ca/toronto")
-                {
+
+//                if (dd.data[0] == "http://www.teambuy.ca/toronto")
+//                {
                     if (dd.data[14] != "")
                     {
                         dd.data[14] = dd.data[14].Replace("(map)", "");
-                        RemoveSpaces(ref dd.data[14]);
+                        RemoveSpaces(ref dd.data[14], true);
                     }
-                    if ((dd.data[18] != "") && (dd.data[13] == "") && (dd.data[14] == ""))
-                    {
-                        dd.data[18] = "";
-                    }
-                    // create as many rows as needed and start extracting address data from googlemaps
-                }
+//                    if ((dd.data[18] != "") && (dd.data[13] == "") && (dd.data[14] == ""))
+//                    {
+//                        dd.data[18] = "";
+//                    }
+//                }
                 
                 Boolean phone = false;
-                for (int i = 13; i <= 15; i++)
+                for (int i = 13; i <= 43; i++)
                 {
+                    if (i == 16)
+                        i = 43;
                     string aux1 = dd.data[i].ToLower();
                     string aux = aux1;
-                    if (!((i == 13) && (dd.data[0] == "http://www.dealfind.com/toronto")))
+                    if (aux != "")
                     {
+                        //                   if (!((i == 13) && (dd.data[0] == "http://www.dealfind.com/toronto")))
+                        //                   {
                         aux = ExtractPhone(aux, dd, ref phone);
-                    }
-                    aux = RemoveWebLinks(aux);
-                    if (aux == "include photo")
-                        dd.data[19] = dd.data[i] + ", " + dd.data[19];
-                    aux = aux.Replace("to redeem voucher,", "");
-                    aux = aux.Replace("to redeem voucher", "");
-                    aux = aux.Replace("to redeem your voucher,", "");
-                    aux = aux.Replace("to redeem your voucher", "");
-                    aux = aux.Replace("please visit:", "");
-                    aux = aux.Replace("please visit", "");
-                    aux = aux.Replace("redeem online by clicking the \"redemption\" link on your voucher", "");
-                    aux = aux.Replace("Redeem online by clicking \"Redemption\" link on your voucher", "");
-                    aux = aux.Replace("online redemption:", "");
-                    aux = aux.Replace("online redemption", "");
-                    aux = aux.Replace("or redeem", "");
-                    aux = aux.Replace("redeem", "");
-                    aux = aux.Replace("online at", "");
-                    aux = aux.Replace("online:", "");
-                    aux = aux.Replace("online", "");
-                    aux = aux.Replace("or by phone:", "");
-                    aux = aux.Replace("or by phone", "");
-                    aux = aux.Replace("by phone:", "");
-                    aux = aux.Replace("by phone", "");
-                    aux = aux.Replace("mobile service", "");
-                    aux = aux.Replace("mobile service:", "");
-                    aux = aux.Replace("mobile", "");
-                    aux = aux.Replace("or by email:", "");
-                    aux = aux.Replace("or by email", "");
-                    aux = aux.Replace("by emailing:", "");
-                    aux = aux.Replace("by emailing", "");
-                    aux = aux.Replace("by email:", "");
-                    aux = aux.Replace("by email", "");
-                    aux = aux.Replace("for inquiries,", "");
-                    aux = aux.Replace("for inquiries", "");
-                    aux = aux.Replace("please call:", "");
-                    aux = aux.Replace("please call", "");
-                    aux = aux.Replace("call:", "");
-                    aux = aux.Replace("call ", " ");
-                    aux = aux.Replace("call\n", "\n");
-                    aux = aux.Replace("email:", "");
-                    aux = aux.Replace("email", "");
-                    aux = aux.Replace("multiple locations", "");
-                    aux = aux.Replace("valid at", "");
-                    aux = aux.Replace("view locations", "");
-                    aux = aux.Replace(" or ", " ");
-                    if (aux1 != aux)
-                    {
-                        RemoveSpaces(ref aux);
-                        dd.data[i] = aux;
+                        //                   }
+                        aux = RemoveWebLinks(aux);
+                        if (aux == "include photo")
+                            dd.data[19] = dd.data[i] + ", " + dd.data[19];
+                        aux = aux.Replace("domocilio conocido", "");
+                        aux = aux.Replace("call to order", "");
+                        aux = aux.Replace("to place your order", "");
+                        aux = aux.Replace("once purchased", "");
+                        aux = aux.Replace("mailed to your door", "");
+                        aux = aux.Replace("see website for directions", "");
+                        aux = aux.Replace("click website link to", "");
+                        aux = aux.Replace("to redeem voucher,", "");
+                        aux = aux.Replace("to redeem voucher", "");
+                        aux = aux.Replace("to redeem your voucher,", "");
+                        aux = aux.Replace("to redeem your voucher", "");
+                        aux = aux.Replace("to book your appointment", "");
+                        aux = aux.Replace("include photo", "");
+                        aux = aux.Replace("mailing address and contact number", "");
+                        aux = aux.Replace("please visit:", "");
+                        aux = aux.Replace("please visit", "");
+                        aux = aux.Replace("they come to you", "");
+                        aux = aux.Replace("for reservations", "");
+                        aux = aux.Replace("redeem online by clicking the \"redemption\" link on your voucher", "");
+                        aux = aux.Replace("Redeem online by clicking \"Redemption\" link on your voucher", "");
+                        aux = aux.Replace("online redemption:", "");
+                        aux = aux.Replace("online redemption", "");
+                        aux = aux.Replace("web redemption:", "");
+                        aux = aux.Replace("web redemption", "");
+                        aux = aux.Replace("or redeem", "");
+                        aux = aux.Replace("redeem", "");
+                        aux = aux.Replace("online at", "");
+                        aux = aux.Replace("online:", "");
+                        aux = aux.Replace("online", "");
+                        aux = aux.Replace("or by phone:", "");
+                        aux = aux.Replace("or by phone", "");
+                        aux = aux.Replace("by phone:", "");
+                        aux = aux.Replace("by phone", "");
+                        aux = aux.Replace("mobile service", "");
+                        aux = aux.Replace("mobile service:", "");
+                        aux = aux.Replace("mobile", "");
+                        aux = aux.Replace("call/email", "");
+                        aux = aux.Replace("or by email:", "");
+                        aux = aux.Replace("or by e-mail:", "");
+                        aux = aux.Replace("or by email", "");
+                        aux = aux.Replace("or by e-mail", "");
+                        aux = aux.Replace("by emailing:", "");
+                        aux = aux.Replace("by emailing", "");
+                        aux = aux.Replace("by email:", "");
+                        aux = aux.Replace("by email", "");
+                        aux = aux.Replace("by e-mail:", "");
+                        aux = aux.Replace("by e-mail", "");
+                        aux = aux.Replace("for inquiries,", "");
+                        aux = aux.Replace("for inquiries", "");
+                        aux = aux.Replace("please call:", "");
+                        aux = aux.Replace("please call", "");
+                        aux = aux.Replace("please", "");
+                        aux = aux.Replace("call:", "");
+                        aux = aux.Replace("call ", " ");
+                        aux = aux.Replace("call\n", "\n");
+                        aux = aux.Replace("or email:", "");
+                        aux = aux.Replace("or email", "");
+                        aux = aux.Replace("email:", "");
+                        aux = aux.Replace("email", "");
+                        aux = aux.Replace("or e-mail:", "");
+                        aux = aux.Replace("or e-mail", "");
+                        aux = aux.Replace("e-mail:", "");
+                        aux = aux.Replace("e-mail", "");
+                        aux = aux.Replace("multiple locations", "");
+                        aux = aux.Replace("valid at", "");
+                        aux = aux.Replace("view locations", "");
+                        aux = aux.Replace("mail out", "");
+                        if (aux1 != aux)
+                        {
+                            RemoveSpaces(ref aux, true);
+                            if (aux == "or") aux = "";
+                            dd.data[i] = aux;
+                        }
                     }
                 }
 
-                if (dd.data[0] == "http://www.dealticker.com/toronto_en_1categ.html")
-                {
+//                if (dd.data[0] == "http://www.dealticker.com/toronto_en_1categ.html")
+//                {
                     transferEmails(ref dd.data[15], ref dd.data[19]);
                     if ((dd.data[15] != "") && ((dd.data[15][0] == '(') || ((dd.data[15][0] >= '0') && (dd.data[15][0] <= '9'))))
-                    {
+                    {  //??? try using Regex to find telephones in all of the columns
                         // Contacts are in the wrong place. Moving them from City to Contact
-                        dd.data[19] = dd.data[19] + dd.data[15] + "; ";
+                        if (dd.data[19].IndexOf(dd.data[15]) == -1)
+                        {
+                            dd.data[19] = dd.data[19] + dd.data[15] + "; ";
+                        }
                         dd.data[15] = "";
                         // streetName must be null??
                         //             dd.data[14] = "";
                     }
-                }
+//                }
 
                 // Put emails in the right column
                 if (dd.data[13] != "")
@@ -1487,11 +2002,11 @@ namespace PlayingWithCsharp
                     transferEmails(ref dd.data[14], ref dd.data[19]);
                 }
 
-                if (dd.data[0] == "http://www.dealfind.com/toronto")
-                {
-                    if ((dd.data[14] == "") && (dd.data[16] == ""))
+ //               if (dd.data[0] == "http://www.dealfind.com/toronto")
+ //               {
+                  if ((dd.data[13] == "") && (dd.data[14] == "") && (dd.data[16] == ""))
                     {
-                        if (dd.data[15] != "")
+                        if ((dd.data[15] != "") && (dd.data[19] == ""))
                         {
                             // Contacts are in the wrong place. Moving them from City to Contact
                             if (dd.data[19] == "")
@@ -1503,15 +2018,60 @@ namespace PlayingWithCsharp
                         if (dd.data[43] != "")
                         {
                             // Contacts are in the wrong place. Moving them from Province to Contact
-                            if (dd.data[19] == "")
-                                dd.data[19] = dd.data[43];
-                            else if (dd.data[19].IndexOf(dd.data[43]) == -1)
-                                dd.data[19] = dd.data[19] + ", " + dd.data[43];
-                            dd.data[43] = "";
+//                            if (dd.data[19] == "")
+//                                dd.data[19] = dd.data[43];
+//                            else if (dd.data[19].IndexOf(dd.data[43]) == -1)
+//                                dd.data[19] = dd.data[19] + ", " + dd.data[43];
+//                            dd.data[43] = "";
+//                            dd.data[17] = "";
+
+                            transferEmails(ref dd.data[43], ref dd.data[19]);
+                            if ((dd.data[43] != "") && ((dd.data[43][0] == '(') || ((dd.data[43][0] >= '0') && (dd.data[43][0] <= '9'))))
+                            {  //??? try using Regex to find telephones in all of the columns
+                                // Contacts are in the wrong place. Moving them from City to Contact
+                                if (dd.data[19].IndexOf(dd.data[43]) == -1)
+                                {
+                                    dd.data[19] = dd.data[19] + dd.data[43] + "; ";
+                                }
+                                dd.data[43] = "";
+                            }
+
+                        
                         }
                     }
-                }
+//                }
+/*                    if (dd.data[19] != "")
+                    {
+                        int i = dd.data[19].LastIndexOf(" or");
+                        while (i != -1)
+                        {
+                            int b = i;
+                            i += 3;
+                            while ((i < dd.data[19].Length) && ((dd.data[19][i] == ' ') || (dd.data[19][i] == '\n') ||
+                                   (dd.data[19][i] == '\t') ||  (dd.data[19][i] == ',') || (dd.data[19][i] == ';')))
+                                i += 1;
+                            if (i >= dd.data[19].Length)
+                            {
+                                dd.data[19].Remove(b, 3);
+                                RemoveSpaces(ref dd.data[19], true);
+                            }
+                            else
+                                break;
+                            i = dd.data[19].LastIndexOf(" or");
+                        }
+                    }*/
 
+                    if (dd.data[15] == dd.data[43])
+                    {
+                        int pos = dd.data[15].IndexOf(",");
+                        if (pos != -1)
+                        {
+                            dd.data[15] = dd.data[15].Remove(pos);
+                            dd.data[43] = dd.data[43].Remove(0, pos);
+                            RemoveSpaces(ref dd.data[15], true);
+                            RemoveSpaces(ref dd.data[43], true);
+                        }
+                    }
 //  if Latitude contains both Lat and Longitude data, Longitude field is empty
                 if ((dd.data[11] != "") && (dd.data[12] == ""))
                 {
@@ -1526,11 +2086,11 @@ namespace PlayingWithCsharp
                     if ((dd.data[18] != "") && (dd.data[18].IndexOf("56.") != -1))
                         dd.data[18] = "";
                 }
-                if ((dd.data[11].Length >= 3) && (dd.data[11].Substring(0, 3) == "51.") && (dd.data[12].Length >= 5) && (dd.data[12].Substring(0, 5) == "-85."))
+                if ((dd.data[11].Length >= 3) && (dd.data[11].Substring(0, 3) == "51.") && (dd.data[12].Length >= 5) && (dd.data[12].Substring(0, 4) == "-85."))
                 {
                     dd.data[11] = "";
                     dd.data[12] = "";
-                    if ((dd.data[18] != "") && (dd.data[18].IndexOf("56.") != -1))
+                    if ((dd.data[18] != "") && (dd.data[18].IndexOf("51.") != -1))
                         dd.data[18] = "";
                 }
 
@@ -1538,7 +2098,11 @@ namespace PlayingWithCsharp
                 if (dd.data[18] != "")
                 {
                     string aux = dd.data[18].ToLower();
-                    if ((aux.IndexOf("=online+") != -1) || (aux.IndexOf("+online+") != -1))
+                    if ((aux.IndexOf("=online+") != -1) || (aux.IndexOf("+online+") != -1) || 
+                        (aux.IndexOf("=mobile+") != -1) || (aux.IndexOf("+mobile+") != -1) || 
+                        (aux.IndexOf("=mail+out+") != -1) || (aux.IndexOf("+mail+out+") != -1) ||
+                        (aux.IndexOf("=mailed+to+your+door+") != -1) || (aux.IndexOf("+mailed+to+your+door+") != -1) ||
+                        (aux.IndexOf("=they+come+to+you+") != -1) || (aux.IndexOf("+they+come+to+you+") != -1))
                     {
                         dd.data[18] = "";
                         dd.data[11] = "";
@@ -1546,51 +2110,7 @@ namespace PlayingWithCsharp
                     }
                 }
 
-                // Round Latitude to 3 decimals
-                if (dd.data[11] != "")
-                {
-                    string s = dd.data[11].ToString();
-                    double lat = 0;
-                    try
-                    {
-                        lat = Convert.ToDouble(s);
-                    }
-                    catch (FormatException)
-                    {
-                        Console.WriteLine("Unable to convert '{0}' to a Double.", s);
-                        AtTheEnd = AtTheEnd + "Unable to convert " + s + " to a Double.";
-                    }
-                    catch (OverflowException)
-                    {
-                        Console.WriteLine("'{0}' is outside the range of a Double.", s);
-                        AtTheEnd = AtTheEnd + s + " is outside the range of a Double.";
-                    }
-                    lat = Math.Round(lat, 3);
-                    dd.data[11] = lat.ToString();
-                }
-
-                // Round Longitude to 3 decimals
-                if (dd.data[12] != "")
-                {
-                    string s = dd.data[12].ToString();
-                    double longit = 0;
-                    try
-                    {
-                        longit = Convert.ToDouble(s);
-                    }
-                    catch (FormatException)
-                    {
-                        Console.WriteLine("Unable to convert '{0}' to a Double.", s);
-                        AtTheEnd = AtTheEnd + "Unable to convert " + s + " to a Double.";
-                    }
-                    catch (OverflowException)
-                    {
-                        Console.WriteLine("'{0}' is outside the range of a Double.", s);
-                        AtTheEnd = AtTheEnd + s + " is outside the range of a Double.";
-                    }
-                    longit = Math.Round(longit, 3);
-                    dd.data[12] = longit.ToString();
-                }
+                RoundLatLong(ref dd.data[11], ref dd.data[12], ref AtTheEnd);
 
                 // if there is no googlemaps link, we create the URL
                 if (dd.data[18] == "")
@@ -1601,11 +2121,23 @@ namespace PlayingWithCsharp
                     }
                 }
 
-                
+                // If it is an online deal (i.e., there is no address, postal code, remove province, country and city. The advertised cities can be caught from OtherData.ListOfCities table
+                if ((dd.data[13]=="") && (dd.data[14]=="") && (dd.data[16]==""))
+                {
+                    dd.data[15] = "";
+                    dd.data[17] = "";
+                    dd.data[43] = "";
+                }
+
+
+                PriceHandling(dd);
+                dd.data[34] = isDealValid(dd.data[32], dd.data[33], dd.data[34]);
+                GetExpiryTime(dd);
+                VouchersHandling(dd);
 // end of Data Handling
 
 
-                SqlCommand myCommandDeal = new SqlCommand("INSERT INTO DealsList (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews) Values (@Website, @DealID, @DealLinkURL, @Category, @Image, @Description, @DealerID, @RegularPrice, @OurPrice, @PayOutAmount, @PayOutLink, @ExpiryTime, @MaxNumberOfVouchers, @MinNumberOfVouchers, @PaidVoucherCount, @DealExtractedTime, @Highlights, @BuyDetails, @DealText, @Reviews)", myConnection);
+                SqlCommand myCommandDeal = new SqlCommand("INSERT INTO DealsList (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews) Values (@Website, @DealID, @DealLinkURL, @Category, @Image, @Description, @DealerID, @RegularPrice, @OurPrice, @Saved, @Discount, @PayOutAmount, @PayOutLink, @ExpiryTime, @MaxNumberOfVouchers, @MinNumberOfVouchers, @PaidVoucherCount, @DealExtractedTime, @Highlights, @BuyDetails, @DealText, @Reviews)", myConnection);
                 SqlCommand myCommandOtherData = new SqlCommand("INSERT INTO OtherData (Website, DealID, ListOfCities, SideDeals, RegularPrice, OurPrice, Saved, Discount, SecondsTotal, SecondsElapsed, RemainingTime, ExpiryTime, DealSoldOut, DealEnded, DealValid, RelatedDeals) Values (@Website, @DealID, @ListOfCities, @SideDeals, @RegularPrice, @OurPrice, @Saved, @Discount, @SecondsTotal, @SecondsElapsed, @RemainingTime, @ExpiryTime, @DealSoldOut, @DealEnded, @DealValid, @RelatedDeals)", myConnection);
 
                 
@@ -1670,7 +2202,7 @@ namespace PlayingWithCsharp
                 if ((dd.data[20] == "") || (dd.data[20] == "{:-("))
                     p18.Value = DBNull.Value;
                 else
-                    p18.Value = dd.data[20];
+                    p18.Value = decimal.Parse(dd.data[20]);
                 myCommandDeal.Parameters.Add(p18);
 
                 SqlParameter p19 = new SqlParameter();
@@ -1678,15 +2210,31 @@ namespace PlayingWithCsharp
                 if ((dd.data[21] == "") || (dd.data[21] == "{:-("))
                     p19.Value = DBNull.Value;
                 else
-                    p19.Value = dd.data[21];
+                    p19.Value = decimal.Parse(dd.data[21]);
                 myCommandDeal.Parameters.Add(p19);
+
+                SqlParameter p20 = new SqlParameter();
+                p20.ParameterName = "@Saved";
+                if ((dd.data[22] == "") || (dd.data[22] == "{:-("))
+                    p20.Value = DBNull.Value;
+                else
+                    p20.Value = decimal.Parse(dd.data[22]);
+                myCommandDeal.Parameters.Add(p20);
+
+                SqlParameter p21 = new SqlParameter();
+                p21.ParameterName = "@Discount";
+                if ((dd.data[23] == "") || (dd.data[23] == "{:-("))
+                    p21.Value = DBNull.Value;
+                else
+                    p21.Value = decimal.Parse(dd.data[23]);
+                myCommandDeal.Parameters.Add(p21);
 
                 SqlParameter p22 = new SqlParameter();
                 p22.ParameterName = "@PayOutAmount";
                 if ((dd.data[24] == "") || (dd.data[24] == "{:-("))
                     p22.Value = DBNull.Value;
                 else
-                   p22.Value = dd.data[24];
+                    p22.Value = decimal.Parse(dd.data[24]);
                 myCommandDeal.Parameters.Add(p22);
 
                 SqlParameter p23 = new SqlParameter();
@@ -1702,7 +2250,7 @@ namespace PlayingWithCsharp
                 if ((dd.data[29] == "") || (dd.data[29] == "{:-("))
                     p27.Value = DBNull.Value;
                 else
-                    p27.Value = dd.data[29];
+                    p27.Value = DateTimeOffset.Parse(dd.data[29]);
                 myCommandDeal.Parameters.Add(p27);
 
                 SqlParameter p28 = new SqlParameter();
@@ -1710,7 +2258,7 @@ namespace PlayingWithCsharp
                 if ((dd.data[30] == "") || (dd.data[30] == "{:-("))
                     p28.Value = DBNull.Value;
                 else
-                    p28.Value = dd.data[30];
+                    p28.Value = Convert.ToInt32(dd.data[30]);
                 myCommandDeal.Parameters.Add(p28);
 
                 SqlParameter p29 = new SqlParameter();
@@ -1718,7 +2266,7 @@ namespace PlayingWithCsharp
                 if ((dd.data[31] == "") || (dd.data[31] == "{:-("))
                     p29.Value = DBNull.Value;
                 else
-                    p29.Value = dd.data[31];
+                    p29.Value = Convert.ToInt32(dd.data[31]);
                 myCommandDeal.Parameters.Add(p29);
 
                 SqlParameter p31 = new SqlParameter();
@@ -1726,7 +2274,7 @@ namespace PlayingWithCsharp
                 if ((dd.data[35] == "") || (dd.data[35] == "{:-("))
                     p31.Value = DBNull.Value;
                 else
-                    p31.Value = dd.data[35];
+                    p31.Value = Convert.ToInt32(dd.data[35]);
                 myCommandDeal.Parameters.Add(p31);
 
                 SqlParameter p32 = new SqlParameter();
@@ -1763,7 +2311,7 @@ namespace PlayingWithCsharp
 
                 SqlParameter p42 = new SqlParameter();
                 p42.ParameterName = "@DealExtractedTime";
-                p42.Value = DateTime.Now.ToString("HH:mm:ss tt");
+                p42.Value = DateTimeOffset.Parse(dd.data[1]);
                 myCommandDeal.Parameters.Add(p42);
 
 //                SqlParameter p41 = new SqlParameter();
@@ -1795,7 +2343,7 @@ namespace PlayingWithCsharp
                 if ((dd.data[20] == "") || (dd.data[20] == "{:-("))
                     p18a.Value = DBNull.Value;
                 else
-                    p18a.Value = dd.data[20];
+                    p18a.Value = decimal.Parse(dd.data[20]);
                 myCommandOtherData.Parameters.Add(p18a);
 
                 SqlParameter p19a = new SqlParameter();
@@ -1803,24 +2351,24 @@ namespace PlayingWithCsharp
                 if ((dd.data[21] == "") || (dd.data[21] == "{:-("))
                     p19a.Value = DBNull.Value;
                 else
-                    p19a.Value = dd.data[21];
+                    p19a.Value = decimal.Parse(dd.data[21]);
                 myCommandOtherData.Parameters.Add(p19a);
 
-                SqlParameter p20 = new SqlParameter();
-                p20.ParameterName = "@Saved";
+                SqlParameter p20a = new SqlParameter();
+                p20a.ParameterName = "@Saved";
                 if ((dd.data[22] == "") || (dd.data[22] == "{:-("))
-                    p20.Value = DBNull.Value;
+                    p20a.Value = DBNull.Value;
                 else
-                    p20.Value = dd.data[22];
-                myCommandOtherData.Parameters.Add(p20);
+                    p20a.Value = decimal.Parse(dd.data[22]);
+                myCommandOtherData.Parameters.Add(p20a);
 
-                SqlParameter p21 = new SqlParameter();
-                p21.ParameterName = "@Discount";
+                SqlParameter p21a = new SqlParameter();
+                p21a.ParameterName = "@Discount";
                 if ((dd.data[23] == "") || (dd.data[23] == "{:-("))
-                    p21.Value = DBNull.Value;
+                    p21a.Value = DBNull.Value;
                 else
-                    p21.Value = dd.data[23];
-                myCommandOtherData.Parameters.Add(p21);
+                    p21a.Value = decimal.Parse(dd.data[23]);
+                myCommandOtherData.Parameters.Add(p21a);
 
                 SqlParameter p24 = new SqlParameter();
                 p24.ParameterName = "@SecondsTotal";
@@ -1851,7 +2399,7 @@ namespace PlayingWithCsharp
                 if ((dd.data[29] == "") || (dd.data[29] == "{:-("))
                     p27a.Value = DBNull.Value;
                 else
-                    p27a.Value = dd.data[29];
+                    p27a.Value = DateTimeOffset.Parse(dd.data[29]);
                 myCommandOtherData.Parameters.Add(p27a);
 
                 SqlParameter p30 = new SqlParameter();
@@ -1930,6 +2478,278 @@ namespace PlayingWithCsharp
 
         }
 
+        private void VouchersHandling(Tags dd)
+        {
+            dd.data[35] = dd.data[35].ToLower();
+            dd.data[35] = dd.data[35].Replace("buys", "");
+            dd.data[35] = dd.data[35].Replace("buy", "");
+            dd.data[35] = dd.data[35].Replace("achats", "");
+            dd.data[35] = dd.data[35].Replace("achat", "");
+            dd.data[35] = dd.data[35].Replace(",", "");
+
+            dd.data[31] = dd.data[31].ToLower();
+            dd.data[31] = dd.data[31].Replace("buys", "");
+            dd.data[31] = dd.data[31].Replace("buy", "");
+            dd.data[31] = dd.data[31].Replace("achats", "");
+            dd.data[31] = dd.data[31].Replace("achat", "");
+            dd.data[31] = dd.data[31].Replace(",", "");
+            dd.data[31] = dd.data[31].Replace("one", "1");
+
+            if (dd.data[30] == "0")
+                dd.data[30] = "";
+
+            int i = dd.data[31].IndexOf('+');
+            if ((i != -1) && (i + 1 < dd.data[31].Length))
+            {
+                int n1 = Convert.ToInt32(dd.data[31].Substring(0, i));
+                int n2 = Convert.ToInt32(dd.data[31].Substring(i+1, dd.data[31].Length - (i + 1)));
+                dd.data[31] = (n1 + n2).ToString();
+            }
+        }
+
+        private void GetExpiryTime(Tags dd)
+        {
+            if (dd.data[29][0] != '#')
+            {
+                Console.WriteLine("Missing time format.");
+                AtTheEnd = AtTheEnd + "Missiing time format.";
+                dd.data[29] = "";
+                return;
+            }
+            int i = dd.data[29].IndexOf('#',1);
+            if (i == -1)
+            {
+                Console.WriteLine("Wrong time format.");
+                AtTheEnd = AtTheEnd + "Wrong time format.";
+                dd.data[29] = "";
+                return;
+            }
+            int format = Convert.ToInt16(dd.data[29].Substring(1, i - 1));
+            dd.data[29] = dd.data[29].Remove(0, i + 1);
+
+            if (format == 1) // represents time by seconds (elapsed and total)
+            {
+                TimeSpan total = TimeSpan.FromSeconds(Convert.ToDouble(dd.data[26]));
+                TimeSpan elapsed = TimeSpan.FromSeconds(Convert.ToDouble(dd.data[27]));
+                DateTimeOffset extracted = DateTimeOffset.Parse(dd.data[1]);
+                dd.data[28] = (total - elapsed).ToString();
+                dd.data[29] = (extracted.Add(total - elapsed)).ToString();
+                return;
+            }
+            if (format == 2)
+            {
+                int hr, min, sec, day;
+                string remaining = dd.data[28];
+                TimeSpan time;
+                DateTimeOffset extracted = DateTimeOffset.Parse(dd.data[1]);
+                DateTimeOffset tomorrow = extracted.AddDays(1);
+                hr = min = sec = day = 0;
+                remaining = remaining.ToLower();
+                remaining = remaining.Replace("jours", "");
+                remaining = remaining.Replace("jour", "");
+                remaining = remaining.Replace("dagen", "");
+                remaining = remaining.Replace("dag", "");
+                remaining = remaining.Replace("days", "-");
+                remaining = remaining.Replace("day", "-");
+                remaining = remaining.Replace("d", "-");
+                remaining = remaining.Replace("hours", ":");
+                remaining = remaining.Replace("hour", ":");
+                remaining = remaining.Replace("hrs", ":");
+                remaining = remaining.Replace("hr", ":");
+                remaining = remaining.Replace("minutes", ":");
+                remaining = remaining.Replace("minute", ":");
+                remaining = remaining.Replace("min", ":");
+                remaining = remaining.Replace("seconds", "");
+                remaining = remaining.Replace("sec", "");
+                remaining = remaining.Replace("days", "-");
+                remaining = remaining.Replace("day", "-");
+                remaining = remaining.Replace("d", "-");
+                remaining = remaining.Replace(";", "");
+                remaining = remaining.Replace(" ", "");
+
+                if (remaining == "")
+                {
+                    dd.data[29] = tomorrow.ToString();
+                    dd.data[28] = (DateTimeOffset.Parse(dd.data[29]) - DateTimeOffset.Parse(dd.data[1])).ToString();
+                    return;
+                }
+                i = remaining.IndexOf('-');
+                if (i != -1)
+                {
+                    if (i > 0)
+                    {
+                        day = Convert.ToInt32(remaining.Substring(0, i));
+                    }
+                    remaining = remaining.Remove(0, i + 1);
+                }
+                i = remaining.LastIndexOf(':');
+                if (i != -1)
+                {
+                    if ((i + 1) < remaining.Length)
+                    {
+                        if (remaining[i + 1] != '-')
+                            sec = Convert.ToInt32(remaining.Substring(i + 1, remaining.Length - i - 1));
+                        remaining = remaining.Remove(i, remaining.Length - i);
+                    }
+                    else
+                        remaining = remaining.Remove(i, 1);
+                }
+                else
+                {
+                    if ((remaining.Length > 0) && (day == 0))
+                    {
+                        day = Convert.ToInt32(remaining);
+                        remaining = "";
+                    }
+                }
+                i = remaining.LastIndexOf(':');
+                if (i != -1)
+                {
+                    if ((i + 1) < remaining.Length)
+                    {
+                        if (remaining[i + 1] != '-')
+                            min = Convert.ToInt32(remaining.Substring(i + 1, remaining.Length - i - 1));
+                        remaining = remaining.Remove(i, remaining.Length - i);
+                    }
+                    else
+                        remaining = remaining.Remove(i, 1);
+                }
+                remaining = remaining.Replace("-","");
+                if (remaining.Length > 0)
+                {
+                    hr = Convert.ToInt32(remaining);
+                }
+                time = new TimeSpan(day, hr, min, sec);
+                dd.data[28] = time.ToString();
+                dd.data[29] = extracted.Add(time).ToString();
+                return;
+            }
+            if (format == 3)
+            {
+                dd.data[29] = dd.data[29].ToUpper();
+                dd.data[29] = dd.data[29].Replace("GMT","");
+                dd.data[28] = (DateTimeOffset.Parse(dd.data[29]) - DateTimeOffset.Parse(dd.data[1])).ToString();
+                return;
+            }
+            return;
+        }
+
+        private string isDealValid(string soldOut, string ended, string isValid)
+        {
+            // if isValid has any value, it means that the deal is invalid
+            if (isValid != "")
+                return ("false");
+            if (soldOut.ToLower() == "false")
+                return ("true");
+            if (ended.ToLower() == "false")
+                return ("true");
+            if (soldOut.ToLower() != "")
+                return ("false");
+            if (ended.ToLower() != "")
+                return ("false");
+            return ("true");
+        }
+
+        private void PriceHandling(Tags dd)
+        {
+            double our, regular, save, disc;
+
+            for (int i = 20; i < 25; i++) // includes pay out amount
+            {
+                dd.data[i] = dd.data[i].Replace("$", "");
+                int j = dd.data[i].IndexOf(',');
+                if ((j != -1) && (j + 3 < dd.data[i].Length))
+                {
+                    dd.data[i] = dd.data[i].Replace(",", "");
+                }
+            }
+
+            if (dd.data[20] != "")
+                regular = Convert.ToDouble(dd.data[20]);
+            else
+                regular = 0;
+
+            if (dd.data[21] != "")
+                our = Convert.ToDouble(dd.data[21]);
+            else
+                our = 0;
+
+            if (dd.data[22] != "")
+                save = Convert.ToDouble(dd.data[22]);
+            else
+                save = 0;
+
+            if (dd.data[23] != "")
+            {
+                dd.data[23] = dd.data[23].Replace("%", "");
+                disc = Convert.ToDouble(dd.data[23]);
+            }
+            else
+                disc = 0;
+
+            if ((regular == 0) && ((our != 0) && (disc != 0)))
+            {
+                regular = Math.Round(((our / (100 - disc)) * 100),2);
+                dd.data[20] = regular.ToString();
+            }
+
+            if ((save == 0) && ((regular != 0) && (our != 0)))
+            {
+                save = regular - our;
+                dd.data[22] = save.ToString();
+            }
+        }
+
+        private void RoundLatLong(ref string p, ref string p_2, ref string AtTheEnd)
+        {
+            // Round Latitude to 4 decimals
+            if (p != "")
+            {
+                string s = p.ToString();
+                double lat = 0;
+                try
+                {
+                    lat = Convert.ToDouble(s);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert '{0}' to a Double.", s);
+                    AtTheEnd = AtTheEnd + "Unable to convert " + s + " to a Double.";
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'{0}' is outside the range of a Double.", s);
+                    AtTheEnd = AtTheEnd + s + " is outside the range of a Double.";
+                }
+                lat = Math.Round(lat, 4);
+                p = lat.ToString();
+            }
+
+            // Round Longitude to 4 decimals
+            if (p_2 != "")
+            {
+                string s = p_2.ToString();
+                double longit = 0;
+                try
+                {
+                    longit = Convert.ToDouble(s);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert '{0}' to a Double.", s);
+                    AtTheEnd = AtTheEnd + "Unable to convert " + s + " to a Double.";
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'{0}' is outside the range of a Double.", s);
+                    AtTheEnd = AtTheEnd + s + " is outside the range of a Double.";
+                }
+                longit = Math.Round(longit, 4);
+                p_2 = longit.ToString();
+            }
+
+        }
+
         private string ReduceInstruc(string str) // reduce search (?) instructions, eliminating the firstsearch (?). Need to do that if the scope were reduced
         {
             int b, e;
@@ -1954,6 +2774,7 @@ namespace PlayingWithCsharp
         private void transferEmails(ref string aux, ref string contact)
         {
             int e, b = aux.IndexOf("@");
+            string temp;
             while (b != -1)
             {
                 e = aux.IndexOf(" ", b);
@@ -1962,13 +2783,21 @@ namespace PlayingWithCsharp
                 b = aux.LastIndexOf(" ", b);
                 if (b == -1)
                     b = 0;
-                if ((contact == "") || (contact == "{:-("))
-                    contact = aux.Substring(b, e - b + 1);
-                else
-                    contact = aux.Substring(b, e - b + 1) + "; " + contact;
-                aux = aux.Replace(aux.Substring(b, e - b + 1), "");
-                RemoveSpaces(ref aux);
-                b = aux.IndexOf("@");
+                temp = aux.Substring(b, e - b + 1);
+                if (temp.IndexOf("(") == -1)
+                {
+                    if (contact.IndexOf(temp) == -1)
+                    {
+                        if ((contact == "") || (contact == "{:-("))
+                            contact = temp;
+                        else
+                            contact = temp + "; " + contact;
+                    }
+                    e = 0;
+                }
+                aux = aux.Replace(temp, "");
+                RemoveSpaces(ref aux, true);
+                b = aux.IndexOf("@", e);
             }
         }
 
@@ -1982,7 +2811,7 @@ namespace PlayingWithCsharp
                     aux = aux.Replace(aux.Substring(b, e - b + 1),"");
                 else
                     aux = aux.Replace(aux.Substring(b, aux.Length - b),"");
-                RemoveSpaces(ref aux);
+                RemoveSpaces(ref aux, true);
                 b = aux.IndexOf("http://");
             }
             b = aux.IndexOf("www.");
@@ -1993,7 +2822,7 @@ namespace PlayingWithCsharp
                     aux = aux.Replace(aux.Substring(b, e - b + 1),"");
                 else
                     aux = aux.Replace(aux.Substring(b, aux.Length - b),"");
-                RemoveSpaces(ref aux);
+                RemoveSpaces(ref aux, true);
                 b = aux.IndexOf("www.");
             }
             b = aux.IndexOf(".com");
@@ -2012,7 +2841,7 @@ namespace PlayingWithCsharp
                 if ((a == -1) || (a >= e)) // it is not an email address
                 {
                     aux = aux.Replace(aux.Substring(b, e - b + 1), "");
-                    RemoveSpaces(ref aux);
+                    RemoveSpaces(ref aux, true);
                     b = aux.IndexOf(".com");
                     if (b == -1)
                         b = aux.IndexOf(".ca");
@@ -2038,6 +2867,8 @@ namespace PlayingWithCsharp
                     b = aux.IndexOf("call");
                 if (b != -1)
                 {
+                    if ((b - 1 >= 0) && (((aux[b - 1] >= 'a') && (aux[b - 1] <= 'z')) || ((aux[b - 1] >= 'A') && (aux[b - 1] <= 'Z'))))
+                        return aux;
                     b += 4; // lenght of word call
                     if (aux[b] == 'e')
                         b += 1; // the word was phone and not call
@@ -2046,7 +2877,7 @@ namespace PlayingWithCsharp
             else b = 0;
             if (b != -1)
             {
-                while ((b < aux.Length) && ((aux[b] == ' ') || (aux[b] == ':')))
+                while ((b < aux.Length) && ((aux[b] == ' ') || (aux[b] == ':') || (aux[b] == '|') || (aux[b] == ';') || (aux[b] == ',') || (aux[b] == '\n') || (aux[b] == '\t')))
                     b += 1;
                 if ((b < aux.Length) && ((aux[b] == '(') || ((aux[b] >= '0') && (aux[b] <= '9'))))
                 {
@@ -2068,11 +2899,19 @@ namespace PlayingWithCsharp
                                         if (e != -1)
                                             dd.data[19] = aux.Substring(b, e - b);
                                         else */
-                    dd.data[19] = aux.Substring(b, aux.Length - b);
+                    int e = aux.IndexOf('|', b);
+                    if (e == -1)
+                        dd.data[19] = aux.Substring(b, aux.Length - b);
+                    else
+                        dd.data[19] = aux.Substring(b, e - b);
                     aux = aux.Replace(dd.data[19], "");
-                    RemoveSpaces(ref aux);
+                    RemoveSpaces(ref aux, true);
                 }
-                else phone = true;
+                else
+                {
+                    if (b >= aux.Length)
+                        phone = true; 
+                }
             }
             return aux;
         }
@@ -2447,8 +3286,8 @@ namespace PlayingWithCsharp
             {
                 p_2 = p.Substring(b, p.Length - b);
                 p = p.Substring(0, b - 1);
-                RemoveSpaces(ref p_2);
-                RemoveSpaces(ref p);
+                RemoveSpaces(ref p_2, true);
+                RemoveSpaces(ref p, true);
             }
         }
 
@@ -2535,17 +3374,17 @@ namespace PlayingWithCsharp
             tag.data[8] = "?\"\\\"og:url\\\" content=\\\"\";@\"\\\"\"";
             tag.data[9] = "?\"\\\"og:image\\\" content=\\\"\";@\"\\\"\"";
             tag.data[10] = "?\"\\\"og:description\\\" content=\\\"\";@\"\\\"/>\";||?\"\var DealName = \\\"\";@\"\\\";\"";
-            tag.data[11] = "?\"\\\"og:latitude\\\" content=\\\"\";@\"\\\"\"";
-            tag.data[12] = "?\"\\\"og:longitude\\\" content=\\\"\";@\"\\\"\"";
+            tag.data[11] = "?\"\\\"og:latitude\\\" content=\\\"\";@\"\\\"\";||?\"&sll=\";@\",\";||?\"&ll=\";@\",\"";
+            tag.data[12] = "?\"\\\"og:longitude\\\" content=\\\"\";@\"\\\"\"||?\"&sll=\";?\",\";@\"&\";||?\"&ll=\";?\",\";@\"&\"";
             tag.data[13] = "?\"ocations:</strong>\";@\"<div class=\\\"divReviews\\\">\"";
             tag.data[14] = "?\"\\\"og:street-address\\\" content=\\\"\";@\"\\\" />\" ";
             tag.data[15] = "?\"\\\"og:locality\";?\"content=\\\"\"-\"/>\";@\",\"||?\"\\\"og:locality\\\" content=\\\"\";@\"\\\" />\"";
             tag.data[16] = "?\"\\\"og:postal-code\\\" content=\\\"\";@\"\\\" />\"";
-            tag.data[17] = "?\"\\\"og:country-name\\\" content=\\\"\";@\"\\\" />\"";
+            tag.data[17] = "?\"\\\"og:country-name\\\" content=\\\"\";@\"\\\" />\"||?\"<div class=\\\"cities\"-\"var DealName\";?$43;?<\"cities list\";@\"\\\"\"";
             tag.data[18] = "?\"itemprop=\\\"maps\\\" href=\\\"\";@\"\\\" target=\"";
             tag.data[19] = "";
-            tag.data[20] = "?\"var RegularPriceHTML = '\";@\"';\"";
-            tag.data[21] = "?\"var OurPriceHTML = '\";@\"';\"";
+            tag.data[20] = "?2\"var RegularPriceHTML = '\";@\"';\";||?\"var RegularPriceHTML = '\";@\"';\"";
+            tag.data[21] = "?2\"var OurPriceHTML = '\";@\"';\";||?\"var OurPriceHTML = '\";@\"';\"";
             tag.data[22] = "?2\"var YouSaveHTML = '\";@\"(\"";
             tag.data[23] = "?2\"var YouSaveHTML = '\";?\"(\";@\")';\"";
             tag.data[24] = "?\"Share and get paid\";@\"per\"";
@@ -2553,7 +3392,7 @@ namespace PlayingWithCsharp
             tag.data[26] = "?\"var DealSeconds_Total =\";@\";\"";
             tag.data[27] = "?\"var DealSeconds_Elapsed =\";@\";\"";
             tag.data[28] = "";
-            tag.data[29] = "";
+            tag.data[29] = "#\"#1#\"";
             tag.data[30] = "?\"var MaxNumberOfVouchers =\";@\";\"";
             tag.data[31] = "?\"var MinNumberOfVouchers =\";@\";\"";
             tag.data[32] = "?\"var DealSoldOut =\";@\";\"";
@@ -2567,7 +3406,14 @@ namespace PlayingWithCsharp
             tag.data[40] = "";
             tag.data[41] = "?2\"/\""; //find DealID/AlternativeID in weblink
             tag.data[42] = "?\"var AffiliateLinkURL = \\\"\";?4\"/\";@\"\\\";\""; //Alternative ID
-            tag.data[43] = "?\"\\\"og:locality\";?\"content=\\\"\"-\"/>\";?\",\";@\"\\\" />\""; 
+            tag.data[43] = "?\"\\\"og:locality\";?\"content=\\\"\"-\"/>\";?\",\";@\"\\\" />\";0;#\"\\|\\|\";?\"<div class=\\\"cities\";?$44;?<\"<h3>\";@\"<\"||?\"\\\"og:locality\";?\"content=\\\"\"-\"/>\";?\",\";@\"\\\" />\"||?\"<div class=\\\"cities\";?$44;?<\"<h3>\";@\"<\"";
+            tag.data[44] = "?\"var UserCityName = \\\"\";@\"\\\"\"";
+            tag.data[45] = "";
+            tag.data[46] = "";
+            tag.data[47] = "";
+            tag.data[48] = "";
+            tag.data[49] = "?\"<title>\";?\"from\";@\"<\"";
+
             ListTags.Add(tag);
 
             tag = new Tags();
@@ -2584,12 +3430,12 @@ namespace PlayingWithCsharp
             tag.data[10] = "?\"\\\"og:title\\\" content=\\\"TeamBuy.ca |\";@\"\\\" />\"";
             tag.data[11] = "?\"http://maps.google.ca/maps?\";?\"&sll=\";@\",\"";
             tag.data[12] = "?\"http://maps.google.ca/maps?\";?\"&sll=\";?\",\";@\"&\"";
-            tag.data[13] = "?\"Locations:\";@\"<div style=\\\"float:right\\\">\"";
+            tag.data[13] = "?\"Locations:\";@\"<div style=\\\"float:right\\\">\";0;#\";\";?\"http://maps.google.ca/maps\"-\"<!-- GOOGLE MAP -->\";?\"http://maps.google.ca/maps\";?<\"<!-- -->\";(?\"http://maps.google.ca/maps\";@\"\\\"\");||?\"Locations:\";@\"<div style=\\\"float:right\\\">\";||?\"http://maps.google.ca/maps\"-\"<!-- GOOGLE MAP -->\";?\"http://maps.google.ca/maps\";?<\"<!-- -->\";(?\"http://maps.google.ca/maps\";@\"\\\"\");||?\"$(\\\"#more_maps\\\")\";(?\"http://maps.google.ca/maps\";@\"\\\"\")";
             tag.data[14] = "?\"<div id=\\\"companyAddress\\\">\";@\"</div>\"";
             tag.data[15] = "";
             tag.data[16] = "";
-            tag.data[17] = "";
-            tag.data[18] = "(?\"http://maps.google.ca/maps?\";?<\"\\\"\";@\"\\\"\")";
+            tag.data[17] = "#\"Canada\"";
+            tag.data[18] = "?\"http://maps.google.ca/maps?\";?<\"\\\"\";@\"\\\"\"";
             tag.data[19] = "?\"<div id=\\\"companyPhone\\\">\";@\"</div>\"";
             tag.data[20] = "?\"<dt>VALUE:\";?2\">\";@\"</dd>\"";
             tag.data[21] = "?\" <dt>PRICE:\";?2\">\";@\"</dd>\"";
@@ -2600,9 +3446,9 @@ namespace PlayingWithCsharp
             tag.data[26] = "";
             tag.data[27] = "";
             tag.data[28] = "?\"Time Left To Buy\";?\";\\\">\";@\"<\"";
-            tag.data[29] = "";
+            tag.data[29] = "#\"#2#\"";
             tag.data[30] = "";
-            tag.data[31] = "?\"more needed<br/>\";?<\"10px\\\">\";@\"more needed<br/>\"";
+            tag.data[31] = "?\"more needed<br/>\";?<\"\\\">\";@\"more needed<br/>\";0;#\"+\";$35;||?\"more buy needed\";?<\"Just\";@\"more buy needed\";0;#\"+\";$35;||?\"Minimum of\";@\"Reached\"";
             tag.data[32] = "";
             tag.data[33] = "";
             tag.data[34] = "?\"<span id=\\\"btn-buy_soldout\\\">\";@\"<\"";
@@ -2615,6 +3461,12 @@ namespace PlayingWithCsharp
             tag.data[41] = "?2\"/\""; //find DealID/AlternativeID in weblink
             tag.data[42] = ""; //Alternative ID
             tag.data[43] = "";
+            tag.data[44] = "";
+            tag.data[45] = "";
+            tag.data[46] = "";
+            tag.data[47] = "";
+            tag.data[48] = "";
+            tag.data[49] = "?\"<title>\";@\"<\"";
 
             /*          tag.data[0] = "http://www.teambuy.ca/toronto";
                         tag.data[1] = " ";
@@ -2671,9 +3523,10 @@ namespace PlayingWithCsharp
             tag.data[8] = "?\"<br /><a href=\\\"\";@\"\\\"\";||?\"from <a href=\\\"\";@\"\\\"\";||?\"at <a href=\\\"\";@\"\\\"\";||?\"at<a href=\\\"\";@\"\\\"\";||?\"service on <a href=\\\"\"@\"\\\"\";||?\"target=\\\"_blank\\\">site\";?<\"<a href=\\\"\";@\"\\\"\"";
             tag.data[9] = "?\"\\\"og:image\\\" content=\\\"\";@\"\\\"\"";
             tag.data[10] = "?\"<meta name=\\\"description\\\" content=\\\"\";@\"\\\"/>\"";
-            tag.data[11] = "?\"var sites = [[\";?\",\";@\",\"";
-            tag.data[12] = "?\"var sites = [[\";?2\",\";@\",\"";
-            tag.data[13] = "?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\"||?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";@\"<br /><a href=\\\"\"";
+            tag.data[11] = "";
+            tag.data[12] = "";
+            tag.data[13] = "?\"var sites = [[\";?<\"var\";@\"]]\"||?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\"";
+//            tag.data[13] = "?\"var sites = [[\";?<\"var\";@\"]]\"||?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\"||?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";@\"<br /><a href=\\\"\"";
             tag.data[14] = "";
             tag.data[15] = "";
             tag.data[16] = "";
@@ -2681,7 +3534,7 @@ namespace PlayingWithCsharp
             tag.data[18] = "";
             tag.data[19] = "";
             tag.data[20] = "?\"<td>Regular Price:</td><td>\";@\"</td>\"";
-            tag.data[21] = "?\">Buy For\";@\"</a></span>\"";
+            tag.data[21] = "?\">Buy For\";@\"<\"";
             tag.data[22] = "?\"<td>You Save:</td><td>\";@\"</td>\"";
             tag.data[23] = "?\"<td>Discount:</td><td>\";@\"</td>\"";
             tag.data[24] = "";
@@ -2689,9 +3542,9 @@ namespace PlayingWithCsharp
             tag.data[26] = "";
             tag.data[27] = "";
             tag.data[28] = "";
-            tag.data[29] = "?\"TargetDate = \\\"\";@\"\\\";\"";
+            tag.data[29] = "#\"#3#\";?\"TargetDate = \\\"\";@\"\\\";\"";
             tag.data[30] = "";
-            tag.data[31] = "?\"class=\\\"deal_activated\\\">\";?\" at\";@\"</span>\"";
+            tag.data[31] = "?\"class=\\\"deal_activated\\\">\";?\" at\";@\"<\"";
             tag.data[32] = "?\"buy_btn\\\" ><a href=\\\"#\\\"\";@\"<\"";
             tag.data[33] = "";
             tag.data[34] = "?\"buy_btn\\\" ><a href=\\\"#\\\"\";@\"<\"";
@@ -2704,6 +3557,12 @@ namespace PlayingWithCsharp
             tag.data[41] = "?\"=\""; //find DealID/AlternativeID in weblink
             tag.data[42] = ""; //Alternative ID
             tag.data[43] = "";
+            tag.data[44] = "";
+            tag.data[45] = "";
+            tag.data[46] = "";
+            tag.data[47] = "";
+            tag.data[48] = "";
+            tag.data[49] = "?\"<title>\";@\"-\"";
             ListTags.Add(tag);
 
             tag = new Tags();
@@ -2718,17 +3577,17 @@ namespace PlayingWithCsharp
             tag.data[8] = "?\"<br /><a href=\\\"\";@\"\\\"\";||?\"from <a href=\\\"\";@\"\\\"\";||?\"at <a href=\\\"\";@\"\\\"\";||?\"at<a href=\\\"\";@\"\\\"\";||?\"target=\\\"_blank\\\">site\";?<\"<a href=\\\"\";@\"\\\"\"";
             tag.data[9] = "?\"\\\"og:image\\\" content=\\\"\";@\"\\\"\"";
             tag.data[10] = "?\"<meta name=\\\"description\\\" content=\\\"\";@\"\\\"/>\"";
-            tag.data[11] = "?\"var sites = [[\";?\",\";@\",\"";
-            tag.data[12] = "?\"var sites = [[\";?2\",\";@\",\"";
-            tag.data[13] = "?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\"";
+            tag.data[11] = "";
+            tag.data[12] = "";
+            tag.data[13] = "?\"var sites = [[\";?<\"var\";@\"]]\"||?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\"";
             tag.data[14] = "";
             tag.data[15] = "";
             tag.data[16] = "";
-            tag.data[17] = "";
+            tag.data[17] = "#\"Canada\"";
             tag.data[18] = "";
             tag.data[19] = "";
             tag.data[20] = "?\"<td>Regular Price:</td><td>\";@\"</td>\"";
-            tag.data[21] = "?\">Buy For\";@\"</a></span>\"";
+            tag.data[21] = "?\">Buy For\";@\"<\"";
             tag.data[22] = "?\"<td>You Save:</td><td>\";@\"</td>\"";
             tag.data[23] = "?\"<td>Discount:</td><td>\";@\"</td>\"";
             tag.data[24] = "";
@@ -2736,9 +3595,9 @@ namespace PlayingWithCsharp
             tag.data[26] = "";
             tag.data[27] = "";
             tag.data[28] = "";
-            tag.data[29] = "?\"TargetDate = \\\"\";@\"\\\";\"";
+            tag.data[29] = "#\"#3#\";?\"TargetDate = \\\"\";@\"\\\";\"";
             tag.data[30] = "";
-            tag.data[31] = "?\"class=\\\"deal_activated\\\">\";?\" at\";@\"</span>\"";
+            tag.data[31] = "?\"class=\\\"deal_activated\\\">\";?\" at\";@\"<\"";
             tag.data[32] = "?\"buy_btn\\\" ><a href=\\\"#\\\"\";@\"<\"";
             tag.data[33] = "";
             tag.data[34] = "?\"buy_btn\\\" ><a href=\\\"#\\\"\";@\"<\"";
@@ -2751,6 +3610,12 @@ namespace PlayingWithCsharp
             tag.data[41] = "?\"=\""; //find DealID/AlternativeID in weblink
             tag.data[42] = ""; //Alternative ID
             tag.data[43] = "";
+            tag.data[44] = "";
+            tag.data[45] = "";
+            tag.data[46] = "";
+            tag.data[47] = "";
+            tag.data[48] = "";
+            tag.data[49] = "?\"<title>\";@\"-\"";
             ListTags.Add(tag);
 
             tag = new Tags();
@@ -2767,11 +3632,11 @@ namespace PlayingWithCsharp
             tag.data[10] = "?\"<div class=\\\"deal-title\\\">\";?\"<p>\";@\"</p>\"";
             tag.data[11] = "?\"http://maps.google.com/maps?q=\";@\"\\\"\"";
             tag.data[12] = "";
-            tag.data[13] = "(?\"<span class=\\\"street_1\\\">\";@\"<span class=\\\"directions\\\">\")";
+            tag.data[13] = "(?\"<span class=\\\"street_1\\\">\";@\"<span class=\\\"directions\\\">\"),\"\\|\"";
             tag.data[14] = "";
             tag.data[15] = "";
             tag.data[16] = "";
-            tag.data[17] = "";
+            tag.data[17] = "?\"<div class=\\\"all-cities\\\">\";?$44;?<\"<h2>\";@\"<\"";
             tag.data[18] = "?\"class=\\\"directions\\\"><a href=\\\"\";@\"\\\"\"";
             tag.data[19] = "";
             tag.data[20] = "";
@@ -2783,7 +3648,7 @@ namespace PlayingWithCsharp
             tag.data[26] = "";
             tag.data[27] = "";
             tag.data[28] = "?\"class=\\\"last\\\">\";?\">\";@\"</div>\"";
-            tag.data[29] = "";
+            tag.data[29] = "#\"#2#\"";
             tag.data[30] = "";
             tag.data[31] = "";
             tag.data[32] = "";
@@ -2798,13 +3663,19 @@ namespace PlayingWithCsharp
             tag.data[41] = "?2\"/\";@\"-\""; //find DealID/AlternativeID in weblink
             tag.data[42] = ""; //Alternative ID
             tag.data[43] = "";
+            tag.data[44] = "?\"title=\\\"LivingSocial -\";@\"\\\"\"";
+            tag.data[45] = "";
+            tag.data[46] = "";
+            tag.data[47] = "";
+            tag.data[48] = "";
+            tag.data[49] = "?\"<meta name=\\\"keywords\\\" content=\\\"\";@\",\"";
             ListTags.Add(tag);
 
             tag = new Tags();
             tag.data[0] = "http://www.dealticker.com/toronto_en_1categ.html";
             tag.data[1] = "?\"no_deal=true\";@\";\" || ?\"404 Not Found\";@\">\"";
             tag.data[2] = "?\"<div id=\\\"city_list\\\"\";(?\"<a href=\\\"http://www.dealticker.com\";@\"\\\"\")-\"<ul class=\\\"lavaLampWithImage\\\" id=\\\"1\\\">\"";
-            tag.data[3] = "(?\"<td colspan=\\\"3\\\" valign='top'\";?3\"<a href=\\\"\";?3\"/\";@\"\\\"\")-\"<td valign=\\\"bottom\\\" style=\\\"height: 170px;\\\">\"";
+            tag.data[3] = "?2\"<!-- Today's Side Deal -->\";(?\"<!-- Today's Side Deal -->\";?\"<a href=\\\"\";?3\"/\";@\"\\\"\")-\"<td valign=\\\"bottom\\\" style=\\\"height: 170px;\\\">\"";
             tag.data[4] = "?\"http://www.dealticker.com/product.php/tab/1/product_id/\";@\"\\\"\"";
             tag.data[5] = "?\"<div class=\\\"short_description\\\"><a href=\\\"\"@\"\\\"\"";
             tag.data[6] = "";
@@ -2815,12 +3686,16 @@ namespace PlayingWithCsharp
             tag.data[11] = "?\"google.maps.LatLng(\";@\",\"";
             tag.data[12] = "?\"google.maps.LatLng(\";?\",\";@\")\"";
             tag.data[13] = "?\"<div id=\\\"location_description\\\"><p>\";@\"<\";||?\"class=\\\"fine_print\\\">Location\";(?\"</b><br>\";@\"</div>\")||?\"class=\\\"fine_print\\\">Location\";(?\"</b></td></tr><tr><td>\";@\"</div>\")";
-            tag.data[14] = "?\"class=\\\"fine_print\\\">Location\";?2\"</td></tr><tr><td>\";@\"</\"||?\"class=\\\"fine_print\\\">Location\";?\"</b><br>\";?\",\"-\"</div>\";@\",\"";
-            tag.data[15] = "?\"class=\\\"fine_print\\\">Location\";?\"</b></td></tr><tr><td>\";@\"<\"||?\"class=\\\"fine_print\\\">Location\";?\"</b><br>\";@\",\"";
-            tag.data[16] = "?\"class=\\\"fine_print\\\">Location\";?3\"</td></tr><tr><td>\";@\"</\"||?\"class=\\\"fine_print\\\">Location\";?\"</b><br>\";?2\",\"-\"</div>\";@\",\"";
-            tag.data[17] = "";
+            tag.data[14] = "";
+            tag.data[15] = "?\"class=\\\"fine_print\\\">Location\";?\"</b></td></tr><tr><td>\";@\"<\"||?\"class=\\\"fine_print\\\">Location\";?\"</b><br>\";@\",\"-\"<div style\"";
+//            tag.data[15] = "";
+            tag.data[16] = "";
+//            tag.data[14] = "?\"class=\\\"fine_print\\\">Location\";?2\"</td></tr><tr><td>\";@\"</\"||?\"class=\\\"fine_print\\\">Location\";?\"</b><br>\";?\",\"-\"</div>\";@\",\"";
+//            tag.data[16] = "?\"class=\\\"fine_print\\\">Location\";?3\"</td></tr><tr><td>\";@\"</\"||?\"class=\\\"fine_print\\\">Location\";?\"</b><br>\";?2\",\"-\"</div>\";@\",\"";
+            tag.data[17] = "?$44;?\"<span>\";@\"<\"";
             tag.data[18] = "";
-            tag.data[19] = "?\"class=\\\"fine_print\\\">Location\";?4\"</td></tr><tr><td>\";@\"</\"||?\"class=\\\"fine_print\\\">Location\";?\"</b><br>\";?3\",\"-\"</div>\";@\"</div>\"";
+            tag.data[19] = "";
+//            tag.data[19] = "?\"class=\\\"fine_print\\\">Location\";?4\"</td></tr><tr><td>\";@\"</\"||?\"class=\\\"fine_print\\\">Location\";?\"</b><br>\";?3\",\"-\"</div>\";@\"</div>\"";
             tag.data[20] = "?\"class=\\\"value\\\">$\";@\"<\"";
             tag.data[21] = "?\"class=\\\"price\\\"\";?\"$\";@\"<\"";
             tag.data[22] = "?2\"class=\\\"value\\\">$\";@\"<\"";
@@ -2830,7 +3705,7 @@ namespace PlayingWithCsharp
             tag.data[26] = "";
             tag.data[27] = "";
             tag.data[28] = "?\"Time Remaining:\";?2\"<tr>\";@\"</tr>\"";
-            tag.data[29] = "";
+            tag.data[29] = "#\"#2#\"";
             tag.data[30] = "?\"var qty_max = \";@\";\"";
             tag.data[31] = "?\"var qty_min = \";@\";\"";
             tag.data[32] = "";
@@ -2841,9 +3716,16 @@ namespace PlayingWithCsharp
             tag.data[37] = "?\"<div id='fine_print'\";?\"<ul>\";@\"</div>\"";
             tag.data[38] = "?\"<div id=\\\"description\\\"\";?\"style=\\\"font-size: small;\\\">\";@\"</span></p></div>\"";
             tag.data[39] = "";
-            tag.data[40] = ""; //find DealID/AlternativeID in weblink
+            tag.data[40] = "";
+            tag.data[41] = "?2\"/\""; //find DealID/AlternativeID in weblink
             tag.data[42] = ""; //Alternative ID
-            tag.data[43] = "";
+            tag.data[43] = "?\"<div id=\\\"city_list\"-\"http://www.dealticker.com/user/register.php\";?$15;?<\"<div>\";@\"<\";||?\"<div id=\\\"city_list\"-\"http://www.dealticker.com/user/register.php\";?$45;?<\"<div>\";@\"<\"";
+            tag.data[44] = "?$43;?<\"<div id=\\\"\";@\"\\\"\"";
+            tag.data[45] = "?\"city=\";@\"\\\"\"";
+            tag.data[46] = "";
+            tag.data[47] = "";
+            tag.data[48] = "";
+            tag.data[49] = "?\"<title>\";@\":\"";
             ListTags.Add(tag);
 
 /*            tag = new Tags();
@@ -2903,9 +3785,9 @@ namespace PlayingWithCsharp
 
 
 
-      //      for (int i = 0; i < ListTags.Count; i++)
+            for (int i = 0; i < ListTags.Count; i++)
             {
-                int i = 0;
+      //          int i = 1;
                 string website = ListTags.ElementAt(i).data[0];
                 Extraction site = new Extraction(ListTags.ElementAt(i), baseaddress.ElementAt(i));
 //                string website = ListTags.ElementAt(i).data[0];
