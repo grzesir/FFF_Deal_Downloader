@@ -1495,10 +1495,13 @@ namespace PlayingWithCsharp
             {
                 List<string> SideDeals = new List<string>();
                 List<string> EvaluatedSideDeals = new List<string>();
+                List<string> SpecialDeals = new List<string>();
                 string part_URL = item;
                 string URL = "";
                 int tries = 3;
                 Boolean FirstTime = true;
+  //SPECIAL              Boolean hasSpecialdeals = false;
+
                 do
                 {   
                     string DealID = "";
@@ -1630,6 +1633,24 @@ namespace PlayingWithCsharp
                             if (FirstTime)
                             {
                                 FirstTime = false;
+ /*SPECIAL                               str = this.oneWebsite.data[48];
+                                temp = this.SingleDataExtraction(str, read);
+                                if ((temp != "{:-(") && (temp != ""))
+                                {
+                                    parts = temp.Split('\n');
+                                    SpecialDeals = new List<string>();
+                                    hasSpecialdeals = true;
+                                    for (int ind = 0; ind < parts.Length; ind++)
+                                    {
+                                        if ((parts[ind] != "") && (!SpecialDeals.Contains(parts[ind])))
+                                        {
+                                            if (parts[ind].Contains("http://"))
+                                                SpecialDeals.Add(parts[ind]);
+                                            else
+                                                SpecialDeals.Add(item + parts[ind]);
+                                        }
+                                    }
+                                } */
                             }
                             else
                             {
@@ -1676,12 +1697,12 @@ namespace PlayingWithCsharp
                                         // Get the data / write to file
                                         for (int j = 5; j < 50; j++)
                                         {
-//                                            Console.Write(j + " ");
-//                                            if ((j == 28))
-//                                            {
-//                                                Console.Write("");
-//                                            }
-                                           if (j == 40)
+                                            //                                            Console.Write(j + " ");
+                                            //                                            if ((j == 28))
+                                            //                                            {
+                                            //                                                Console.Write("");
+                                            //                                            }
+                                            if (j == 40)
                                                 j = 43;
                                             if (DealData.data[j] == "")
                                             {
@@ -1746,8 +1767,19 @@ namespace PlayingWithCsharp
                             }
                         }
                     }
-                    if ((SideDeals.Count == 0) && (TryLater.Count != 0))
+/*SPECIAL                    if ((hasSpecialdeals) && (SideDeals.Count == 0))
                     {
+                        if (SpecialDeals.Count > 0)
+                        {
+                            part_URL = SpecialDeals.ElementAt(0);
+                            SpecialDeals.RemoveAt(0);
+                        }
+                        else
+                            hasSpecialdeals = false;
+                    } */
+//SPECIAL                    if ((!hasSpecialdeals) && (SideDeals.Count == 0) && (TryLater.Count != 0))
+                    if ((SideDeals.Count == 0) && (TryLater.Count != 0))
+                        {
                         if (tries > 0)
                         {
                             while (TryLater.Count > 0)
@@ -1768,6 +1800,7 @@ namespace PlayingWithCsharp
                             TryLater = new List<string>();
                         }
                     }
+//SPECIAL                } while ((SideDeals.Count() > 0) || (hasSpecialdeals));
                 } while (SideDeals.Count() > 0);
             }
             Console.WriteLine("\n\nNow listing cities with the same deal:");
@@ -1876,6 +1909,7 @@ namespace PlayingWithCsharp
                 if (dd.data[14] != "")
                 {
                     dd.data[14] = dd.data[14].Replace("(map)", "");
+                    dd.data[14] = dd.data[14].Replace("(carte)", "");
                     RemoveSpaces(ref dd.data[14], true);
                 }
                 
@@ -3675,7 +3709,7 @@ namespace PlayingWithCsharp
             tag.data[45] = "";
             tag.data[46] = "";
             tag.data[47] = "";
-            tag.data[48] = "";
+            tag.data[48] = "?\"<div id=\\\"exp_container\";?\"</div>\"-\"<!-- end header_content -->\";(?\"<a href=\\\"\";@\"\\\"\")";
             tag.data[49] = "?\"<title>\";@\"-\"";
             ListTags.Add(tag);
 
@@ -3942,7 +3976,7 @@ namespace PlayingWithCsharp
 
             for (int i = 0; i < ListTags.Count; i++)
             {
-    //            int i = 4;
+  //              int i = 2;
                 string website = ListTags.ElementAt(i).data[0];
                 Extraction site = new Extraction(ListTags.ElementAt(i), baseaddress.ElementAt(i));
 //                string website = ListTags.ElementAt(i).data[0];
@@ -3965,7 +3999,47 @@ namespace PlayingWithCsharp
                 }
             }*/
 
-            myChoice = Console.ReadLine();
+            // Transfer Timed Out Deals to DealsEnded Table again (normally half an hour after the previous transfer)
+            myConnection = new SqlConnection("server=MEDIACONNECT-PC\\MCAPPS; Trusted_Connection=yes; database=Deals; connection timeout=15");
+            try
+            {
+                myConnection.Open();
+            }
+            catch (Exception e)
+            {
+                myConnection = new SqlConnection("server=FIVEFINGERFINDS\\MEDIACONNECT; Trusted_Connection=yes; database=Deals; connection timeout=15");
+                try
+                {
+                    myConnection.Open();
+                }
+                catch (Exception error)
+                {
+                    Console.WriteLine(e.ToString());
+                    Console.WriteLine(error.ToString());
+                }
+            }
+            current_time = DateTimeOffset.Now;
+            using (SqlCommand myCommand = new SqlCommand("MERGE Deals.dbo.DealsEnded USING (SELECT * FROM [Deals].[dbo].[DealsList] where ExpiryTime < @CURRENT_TIME) as source on (Deals.dbo.DealsEnded.DealID = source.dealID) WHEN not matched then insert (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite) Values (source.Website, source.DealID, source.DealLinkURL, source.Category, source.Image, source.Description, source.DealerID, source.RegularPrice, source.OurPrice, source.Saved, source.Discount, source.PayOutAmount, source.PayOutLink, source.ExpiryTime, source.MaxNumberVouchers, source.MinNumberVouchers, source.PaidVoucherCount, source.DealExtractedTime, source.Highlights, source.BuyDetails, source.DealText, source.Reviews, source.DealSite);", myConnection))
+            {
+                SqlParameter param = new SqlParameter();
+                param.ParameterName = "@CURRENT_TIME";
+                param.Value = current_time;
+                myCommand.Parameters.Add(param);
+
+                myCommand.ExecuteNonQuery();
+            }
+            using (SqlCommand myCommand = new SqlCommand("DELETE FROM [Deals].[dbo].[DealsList] where ExpiryTime < @CURRENT_TIME", myConnection))
+            {
+                SqlParameter param = new SqlParameter();
+                param.ParameterName = "@CURRENT_TIME";
+                param.Value = current_time;
+                myCommand.Parameters.Add(param);
+
+                myCommand.ExecuteNonQuery();
+            }
+            myConnection.Close();
+            
+//            myChoice = Console.ReadLine();
         }
     }
 }
