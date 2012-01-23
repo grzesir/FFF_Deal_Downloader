@@ -9,6 +9,7 @@ using System.Net;
 using System.Globalization;
 using System.Reflection;
 using System.Net.Cache;
+using System.Xml;
 
 namespace PlayingWithCsharp
 {
@@ -16,9 +17,9 @@ namespace PlayingWithCsharp
     {
         string contact = "";
         string postalCode = "";
-        string streetAddress = "";
-        string city = "";
-        string province = "";
+        public string streetAddress = "";
+        public string city = "";
+        public string province = "";
         string country = "";
         string latitude = "";
         string longitude = "";
@@ -129,9 +130,23 @@ namespace PlayingWithCsharp
         {
             Locations.Add(l);
         }
-        public location GetLocation(int i)
+        public dealer sortByProvinceCityAndStreetAddress(dealer l)
         {
-            return Locations[i];
+            List<location> temp = l.Locations;
+            temp = temp.OrderBy(loc => loc.province).ThenBy(loc => loc.city).ThenBy(loc => loc.streetAddress).ToList();
+            l.Locations = temp;
+            return (l);
+        }
+        public location getLocation(int i)
+        {
+            location loc = Locations[i];
+            return loc;
+        }
+        public location GetRemoveLocation(int i)
+        {
+            location loc = Locations[i];
+            Locations.RemoveAt(i);
+            return loc;
         }
         public int CountLocations()
         {
@@ -610,6 +625,7 @@ namespace PlayingWithCsharp
                 return ("{:-(");
             }
             str_new = str_new.Replace("\\|","|");
+            str_new = str_new.Replace("\\\"", "\"");
             return (str_new);
         }
 
@@ -731,6 +747,9 @@ namespace PlayingWithCsharp
                         else
                         {
                             RemoveTags(ref result);
+                            if (result!="")
+                                if ((result.Length <= 4) && (result[0] == '#') && (result[result.Length - 1] == '#'))
+                                    result = "";
                             if (result == "http://")
                                 result = "";
                             if (result != "")
@@ -929,22 +948,33 @@ namespace PlayingWithCsharp
                             }
                             if (read_pos == -1)
                             {
-                                do
+                                byte[] tempBytes = System.Text.Encoding.GetEncoding("ISO-8859-8").GetBytes(search.GetKeyword());
+                                string normal = System.Text.Encoding.UTF8.GetString(tempBytes);
+                                if (normal != search.GetKeyword())
                                 {
-                                    c = str.IndexOf('|', c + 1);
-                                } while ((c != -1) && (str[c - 1] == '\\'));
-                                position = read_pos;
-                                if (c == -1)
-                                    c = str.Length;
-                                if (op_rep)
-                                {
-                                    result = "";
-                                    break;
+                                    read_pos = saved_pos;
+                                    search.SetKeyword(normal);
+                                    continue;
                                 }
-                                err_not_found = "The data you are looking for can not be found in the HTML file";
-                                //                                Console.WriteLine("The data you are looking for can not be found in the HTML file");
-                                break;
-                                //                                return ("{:-("); //ends the Thread?
+                                else
+                                {
+                                    do
+                                    {
+                                        c = str.IndexOf('|', c + 1);
+                                    } while ((c != -1) && (str[c - 1] == '\\'));
+                                    position = read_pos;
+                                    if (c == -1)
+                                        c = str.Length;
+                                    if (op_rep)
+                                    {
+                                        result = "";
+                                        break;
+                                    }
+                                    err_not_found = "The data you are looking for can not be found in the HTML file";
+                                    //                                Console.WriteLine("The data you are looking for can not be found in the HTML file");
+                                    break;
+                                    //                                return ("{:-("); //ends the Thread?
+                                }
                             }
                             read_pos += search.GetKeyword().Length;
                         }
@@ -990,18 +1020,29 @@ namespace PlayingWithCsharp
                             }
                             if (read_pos == -1)
                             {
-                                do
+                                byte[] tempBytes = System.Text.Encoding.GetEncoding("ISO-8859-8").GetBytes(search.GetKeyword());
+                                string normal = System.Text.Encoding.UTF8.GetString(tempBytes);
+                                if (normal != search.GetKeyword())
                                 {
-                                    c = str.IndexOf('|', c + 1);
-                                } while ((c != -1) && (str[c - 1] == '\\'));
-                                position = read_pos;
-                                if (c == -1)
-                                    c = str.Length;
-                                err_not_found = "The data you are looking for can not be found in the HTML file";
-                                //                               Console.WriteLine("The data you are looking for can not be found in the HTML file");
-                                //                            c += 1;
-                                break;
-                                //                                return("{:-("); //ends the Thread?
+                                    read_pos = saved_pos;
+                                    search.SetKeyword(normal);
+                                    continue;
+                                }
+                                else
+                                {
+                                    do
+                                    {
+                                        c = str.IndexOf('|', c + 1);
+                                    } while ((c != -1) && (str[c - 1] == '\\'));
+                                    position = read_pos;
+                                    if (c == -1)
+                                        c = str.Length;
+                                    err_not_found = "The data you are looking for can not be found in the HTML file";
+                                    //                               Console.WriteLine("The data you are looking for can not be found in the HTML file");
+                                    //                            c += 1;
+                                    break;
+                                    //                                return("{:-("); //ends the Thread?
+                                }
                             }
                             else
                                 if (search.GetTimes() > 1)
@@ -1009,14 +1050,14 @@ namespace PlayingWithCsharp
                                 else
                                     read_pos += search.GetKeyword().Length;
                         }
-                        byte[] tempBytes = System.Text.Encoding.GetEncoding("ISO-8859-8").GetBytes(search.GetKeyword());
-                        string normal = System.Text.Encoding.UTF8.GetString(tempBytes);
-                        if ((normal == search.GetKeyword()) || (read_pos != -1))
+                        byte[] tempBytes1 = System.Text.Encoding.GetEncoding("ISO-8859-8").GetBytes(search.GetKeyword());
+                        string normal1 = System.Text.Encoding.UTF8.GetString(tempBytes1);
+                        if ((normal1 == search.GetKeyword()) || (read_pos != -1))
                             search.SetTimes(search.GetTimes() - 1);
                         else
                         {
                             read_pos = saved_pos;
-                            search.SetKeyword(normal);
+                            search.SetKeyword(normal1);
                         }
                     }
                     if ((c >= str.Length) || (read_pos == -1))
@@ -1105,30 +1146,41 @@ namespace PlayingWithCsharp
                             }
                             if (read_pos == -1)
                             {
-                                if ((c < str.Length) && (str[c] != '|'))
+                                byte[] tempBytes = System.Text.Encoding.GetEncoding("ISO-8859-8").GetBytes(search.GetKeyword());
+                                string normal = System.Text.Encoding.UTF8.GetString(tempBytes);
+                                if (normal != search.GetKeyword())
                                 {
-                                    do
+                                    read_pos = saved_pos;
+                                    search.SetKeyword(normal);
+                                    continue;
+                                }
+                                else
+                                {
+                                    if ((c < str.Length) && (str[c] != '|'))
                                     {
-                                        if (c + 1 < str.Length)
+                                        do
                                         {
-                                            c = str.IndexOf('|', c + 1);
-                                        }
-                                        else
-                                            c = -1;
-                                    } while ((c != -1) && (str[c - 1] == '\\'));
-                                }
-                                position = read_pos;
-                                if (c == -1)
-                                    c = str.Length;
-                                if (op_rep)
-                                {
-                                    result = "";
+                                            if (c + 1 < str.Length)
+                                            {
+                                                c = str.IndexOf('|', c + 1);
+                                            }
+                                            else
+                                                c = -1;
+                                        } while ((c != -1) && (str[c - 1] == '\\'));
+                                    }
+                                    position = read_pos;
+                                    if (c == -1)
+                                        c = str.Length;
+                                    if (op_rep)
+                                    {
+                                        result = "";
+                                        break;
+                                    }
+                                    err_not_found = "The data you are looking for can not be found in the HTML file";
+                                    //                               Console.WriteLine("The data you are looking for can not be found in the HTML file");
                                     break;
+                                    //                                return("{:-("); //ends the Thread?
                                 }
-                                err_not_found = "The data you are looking for can not be found in the HTML file";
-                                //                               Console.WriteLine("The data you are looking for can not be found in the HTML file");
-                                break;
-                                //                                return("{:-("); //ends the Thread?
                             }
                             read_pos += search.GetKeyword().Length;
                         }
@@ -1174,25 +1226,36 @@ namespace PlayingWithCsharp
                             }
                             if (read_pos == -1)
                             {
-                                if ((c < str.Length) && (str[c] != '|'))
+                                byte[] tempBytes = System.Text.Encoding.GetEncoding("ISO-8859-8").GetBytes(search.GetKeyword());
+                                string normal = System.Text.Encoding.UTF8.GetString(tempBytes);
+                                if (normal != search.GetKeyword())
                                 {
-                                    do
-                                    {
-                                        if (c + 1 < str.Length)
-                                        {
-                                            c = str.IndexOf('|', c + 1);
-                                        }
-                                        else
-                                            c = -1;
-                                    } while ((c != -1) && (str[c - 1] == '\\'));
+                                    read_pos = saved_pos;
+                                    search.SetKeyword(normal);
+                                    continue;
                                 }
-                                position = read_pos;
-                                if (c == -1)
-                                    c = str.Length;
-                                err_not_found = "The data you are looking for can not be found in the HTML file";
-                                //                              Console.WriteLine("The data you are looking for can not be found in the HTML file");
-                                break;
-                                //                                return("{:-("); //ends the Thread?
+                                else
+                                {
+                                    if ((c < str.Length) && (str[c] != '|'))
+                                    {
+                                        do
+                                        {
+                                            if (c + 1 < str.Length)
+                                            {
+                                                c = str.IndexOf('|', c + 1);
+                                            }
+                                            else
+                                                c = -1;
+                                        } while ((c != -1) && (str[c - 1] == '\\'));
+                                    }
+                                    position = read_pos;
+                                    if (c == -1)
+                                        c = str.Length;
+                                    err_not_found = "The data you are looking for can not be found in the HTML file";
+                                    //                              Console.WriteLine("The data you are looking for can not be found in the HTML file");
+                                    break;
+                                    //                                return("{:-("); //ends the Thread?
+                                }
                             }
                             else
                                 if (search.GetTimes() > 1)
@@ -1200,14 +1263,14 @@ namespace PlayingWithCsharp
                                 else
                                     read_pos += search.GetKeyword().Length;
                         }
-                        byte[] tempBytes = System.Text.Encoding.GetEncoding("ISO-8859-8").GetBytes(search.GetKeyword());
-                        string normal = System.Text.Encoding.UTF8.GetString(tempBytes);
-                        if ((normal == search.GetKeyword()) || (read_pos != -1))
+                        byte[] tempBytes1 = System.Text.Encoding.GetEncoding("ISO-8859-8").GetBytes(search.GetKeyword());
+                        string normal1 = System.Text.Encoding.UTF8.GetString(tempBytes1);
+                        if ((normal1 == search.GetKeyword()) || (read_pos != -1))
                             search.SetTimes(search.GetTimes() - 1);
                         else
                         {
                             read_pos = saved_pos;
-                            search.SetKeyword(normal);
+                            search.SetKeyword(normal1);
                         }
                     }
 
@@ -1266,9 +1329,11 @@ namespace PlayingWithCsharp
                     }
                     if (end_pos != -1)
                     {
+                        string text;
                         end_pos -= end.GetKeyword().Length;
-
-                        result = result + read.Substring(read_pos, end_pos - read_pos);
+                        text = read.Substring(read_pos, end_pos - read_pos);
+                        RemoveSpaces(ref text, false, false);
+                        result = result + text;
                         read_pos = end_pos;
                     }
                     position = end_pos;
@@ -1322,6 +1387,28 @@ namespace PlayingWithCsharp
             while (i != -1)
             {
                 int j = result.IndexOf(">", i+1);
+                if (j != -1)
+                    result = result.Replace(result.Substring(i, j - i + 1), "");
+                else
+                    result = result.Replace(result.Substring(i, result.Length - i), "");
+                i = result.IndexOf(htmlTag);
+            }
+            htmlTag = "<h";
+            i = result.IndexOf(htmlTag);
+            while (i != -1)
+            {
+                int j = result.IndexOf(">", i + 1);
+                if (j != -1)
+                    result = result.Replace(result.Substring(i, j - i + 1), "");
+                else
+                    result = result.Replace(result.Substring(i, result.Length - i), "");
+                i = result.IndexOf(htmlTag);
+            }
+            htmlTag = "<img";
+            i = result.IndexOf(htmlTag);
+            while (i != -1)
+            {
+                int j = result.IndexOf(">", i + 1);
                 if (j != -1)
                     result = result.Replace(result.Substring(i, j - i + 1), "");
                 else
@@ -1448,7 +1535,7 @@ namespace PlayingWithCsharp
                 }
             }
 
-            RemoveSpaces(ref result, false);
+            RemoveSpaces(ref result, false, false);
         }
 
         private void RemoveAmpersand(ref string result)
@@ -1458,37 +1545,41 @@ namespace PlayingWithCsharp
             result = result.Replace("&rsquo;", "’");
             result = result.Replace("&nbsp;", "");
             result = result.Replace("&quot;", "\"");
+            result = result.Replace("&ldquo;", "\"");
+            result = result.Replace("&rdquo;", "\"");
+            result = result.Replace("&rsquo;", "'");
+            result = result.Replace("&lsquo;", "'");
             result = result.Replace("&lt;", "<");
             result = result.Replace("&gt;", ">");
             result = result.Replace("&tilde;", "~");
-            RemoveSpaces(ref result, false);
+            RemoveSpaces(ref result, false, false);
         }
 
         
-        private void RemoveSpaces(ref string temp_result, Boolean ponctuation) // Ponctuation indicates if it has to remove ponctuation characters. It must be true only when handling the data and false when extracting from webpages
+        private void RemoveSpaces(ref string temp_result, Boolean ponctuation, Boolean commas) // Ponctuation indicates if it has to remove ponctuation characters. It must be true only when handling the data and false when extracting from webpages
         {
             int b = 0;
             int e = temp_result.Length - 1;
-            if ((e == 0) && (temp_result[0] != ' ') && (temp_result[0] != '\n') && (temp_result[0] != '\t'))
+            if ((e == 0) && (temp_result[0] != ' ') && (temp_result[0] != '\n') && (temp_result[0] != '\t') && (temp_result[b] != 160) && (temp_result[b] != '\r') && (temp_result[b] != '|') && (!isPunctuation(temp_result[b], commas)))
                 return;
             if (ponctuation)
             {
-                while ((b <= e) && ((temp_result[b] == ' ') || (temp_result[b] == 160) || (temp_result[b] == '\n') || (temp_result[b] == '\t') || (temp_result[b] == '|') || (isPunctuation(temp_result[b]))))
+                while ((b <= e) && ((temp_result[b] == ' ') || (temp_result[b] == 160) || (temp_result[b] == '\n') || (temp_result[b] == '\t') || (temp_result[b] == '\r') || (temp_result[b] == '|') || (isPunctuation(temp_result[b], commas))))
                 {
                     b += 1;
                 }
-                while ((e > b) && ((temp_result[e] == ' ') || (temp_result[e] == 160) || (temp_result[e] == '\n') || (temp_result[e] == '\t') || (temp_result[b] == '|') || (isPunctuation(temp_result[e]))))
+                while ((e > b) && ((temp_result[e] == ' ') || (temp_result[e] == 160) || (temp_result[e] == '\n') || (temp_result[e] == '\t') || (temp_result[e] == '\r') || (temp_result[e] == '|') || (isPunctuation(temp_result[e], commas)) || (temp_result[e] == '-')))
                 {
                     e -= 1;
                 }
             }
             else
             {
-                while ((b <= e) && ((temp_result[b] == ' ') || (temp_result[b] == 160) || (temp_result[b] == '\n') || (temp_result[b] == '\t') || (temp_result[b] == '|')))
+                while ((b <= e) && ((temp_result[b] == ' ') || (temp_result[b] == 160) || (temp_result[b] == '\n') || (temp_result[b] == '\t') || (temp_result[b] == '\r') || (temp_result[b] == '|')))
                 {
                     b += 1;
                 }
-                while ((e > b) && ((temp_result[e] == ' ') || (temp_result[e] == 160) || (temp_result[e] == '\n') || (temp_result[e] == '\t') || (temp_result[b] == '|')))
+                while ((e > b) && ((temp_result[e] == ' ') || (temp_result[e] == 160) || (temp_result[e] == '\n') || (temp_result[e] == '\t') || (temp_result[e] == '\r') || (temp_result[e] == '|') || (temp_result[e] == '-')))
                 {
                     e -= 1;
                 }
@@ -1499,16 +1590,18 @@ namespace PlayingWithCsharp
                 temp_result = "";
         }
 
-        private bool isPunctuation(char p)
+        private bool isPunctuation(char p, Boolean commas)
         {
-            if ((p == ',') || (p == '.') || (p == ';') || (p == ':') || (p == '?') || (p == '!'))
+            if ((p == '.') || (p == ';') || (p == ':') || (p == '?') || (p == '!'))
+                return true;
+            if ((commas) && (p == ','))
                 return true;
             return false;
         }
 
         string DownloadData(string URL)
         {
-            // Set a default policy level for the "http:" and "https" schemes.
+/*            // Set a default policy level for the "http:" and "https" schemes.
             HttpRequestCachePolicy policy = new HttpRequestCachePolicy(HttpRequestCacheLevel.Default);
             HttpWebRequest.DefaultCachePolicy = policy;
             // Create the request.
@@ -1533,9 +1626,9 @@ namespace PlayingWithCsharp
                 Console.WriteLine("ERROR: Exception reading from webpage " + URL);
                 strReturn = "ERROR: Exception reading from webpage";
             }
-            return strReturn;
+            return strReturn; */
 
-/*            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(URL);
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(URL);
 //            request.UserAgent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.12) Gecko/20101026 Firefox/3";
             request.Accept = "Accept: text/html,application/xhtml+xml,application/xml";
             string strData = "";
@@ -1556,10 +1649,10 @@ namespace PlayingWithCsharp
             }
             catch(Exception e)
             {
-                Console.WriteLine("ERROR: Exception reading from webpage " + URL);
+                Console.WriteLine("ERROR: Exception reading from webpage " + URL + "\n");
                 strData = "ERROR: Exception reading from webpage";
             }
-            return strData; */
+            return strData;
         }
 
         // Thread responsible for extracting the all of the cities links for a given website
@@ -1650,6 +1743,8 @@ namespace PlayingWithCsharp
 
             writer.WriteLine("Website | xx | ListOfCities | yy | DealID | DealLinkURL | Category | Company | CompanysURL | Image | Description | Latitude | Longitude | CompleteAddress | StreetName | City | PostalCode | Country | Map | CompanysPhone | RegularPrice | OurPrice | Save | Discount | PayOutAmount | PayOutLink | SecondsTotal | SecondsElapsed | RemainingTime | ExpiryTime | MaxNumberOfVouchers | MinNumberOfVouchers | DealSoldOut | DealEnded | DealValid | PaidVoucherCount | Highlights | BuyDetails | DealText | Reviews | RelatedDeals (same company)");
             List<string> TryLater = new List<string>();
+//            for (int we = 0; we < 1; we ++)
+//            {   string item = "abc";
             foreach (string item in listOfCities)
             {
                 List<string> SideDeals = new List<string>();
@@ -1675,7 +1770,7 @@ namespace PlayingWithCsharp
                         SideDeals.RemoveAt(0);
                     }
 
-     //               URL = "http://www.dealticker.com/product.php/product_id/17741";
+//                    URL = "http://www.wagjag.com/?w=59146&c=63";
                     URL = baseAddress.Replace("$", part_URL);
                     // opening Website
                     read = DownloadData(URL);
@@ -1710,6 +1805,7 @@ namespace PlayingWithCsharp
                                     temp = temp + relatedDeals;
                                 else
                                     temp = relatedDeals;
+//                            if (false)
                             if (temp != "{:-(")
                             {
                                 List<string> tempSideDeals;
@@ -1821,6 +1917,8 @@ namespace PlayingWithCsharp
                                 // get the dealID 
                                 str = this.oneWebsite.data[4];
                                 DealID = this.SingleDataExtraction(str, read);
+                                if (DealID.Length > 20)
+                                    DealID = DealID.Substring(0, 20);
                                 if (DealID == "{:-(")
                                 {
                                     Console.WriteLine("WARNING: Couldn't find the DealID in website " + URL);
@@ -1831,7 +1929,7 @@ namespace PlayingWithCsharp
                                 else
                                 {
                                     string alternativeID = this.SingleDataExtraction(this.oneWebsite.data[42], read);
-                                    if (alternativeID == "")
+                                    if ((alternativeID == "") || (alternativeID == "{:-("))
                                         i = listOfEvaluatedDeals.DealEvaluated(DealID);
                                     else
                                         i = listOfEvaluatedDeals.DealEvaluated(alternativeID);
@@ -1860,11 +1958,11 @@ namespace PlayingWithCsharp
                                         // Get the data / write to file
                                         for (int j = 5; j < 50; j++)
                                         {
-                                            //                                            Console.Write(j + " ");
-                                            //                                            if ((j == 13))
-                                            //                                            {
-                                            //                                                Console.Write("");
-                                            //                                           }
+//                                            Console.Write(j + " ");
+                                            if ((j == 21))
+                                            {
+                                                Console.Write("");
+                                            }
                                             if (j == 40)
                                                 j = 43;
                                             if (DealData.data[j] == "")
@@ -1966,14 +2064,14 @@ namespace PlayingWithCsharp
 //SPECIAL                } while ((SideDeals.Count() > 0) || (hasSpecialdeals));
                 } while (SideDeals.Count() > 0);
             }
-            Console.WriteLine("\n\nNow listing cities with the same deal:");
+//            Console.WriteLine("\n\nNow listing cities with the same deal:");
             writer.WriteLine("\n\n\n\nNow listing cities with the same deal:");
             for (int i = 0; i < listOfEvaluatedDeals.CountDeals(); i++)
             {
                 deals Dealdetails = listOfEvaluatedDeals.GetDealDetails(i);
                 Tags dealData = new Tags();
                 string ID = Dealdetails.GetDealID();
-                Console.Write("\n" + ID + " - ");
+//                Console.Write("\n" + ID + " - ");
                 writer.Write("\n" + ID + " - ");
 
                 foreach (Tags dd in listOfDeals)
@@ -1985,13 +2083,13 @@ namespace PlayingWithCsharp
                 foreach (string item in Dealdetails.GetListCities())
                 {
                     dealData.data[2] = dealData.data[2] + item + "; ";
-                    Console.Write(item + "  ");
+//                    Console.Write(item + "  ");
                     writer.Write(item + "  ");
                 }
             }
-            Console.WriteLine("\n\nTotal of deals: " + listOfEvaluatedDeals.CountDeals());
-            Console.WriteLine("Total of cities: " + listOfCities.Count);
-            Console.WriteLine();
+//            Console.WriteLine("\n\nTotal of deals: " + listOfEvaluatedDeals.CountDeals());
+//            Console.WriteLine("Total of cities: " + listOfCities.Count);
+//            Console.WriteLine();
             writer.WriteLine("\n\n\n\nTotal of deals: " + listOfEvaluatedDeals.CountDeals());
             writer.WriteLine("Total of cities: " + listOfCities.Count + "\n\n\n");
 
@@ -2016,6 +2114,81 @@ namespace PlayingWithCsharp
                 }
             }
 
+            List<string> removeText = new List<string>();
+            removeText.Add("products shipped to you");
+            removeText.Add("include photo");
+            removeText.Add("(map)");
+            removeText.Add("(carte)");
+            removeText.Add("see map");
+            removeText.Add("phone and contact with:");
+            removeText.Add("domocilio conocido");
+            removeText.Add("on location shoot");
+            removeText.Add("call to order");
+            removeText.Add("to place your order");
+            removeText.Add("once purchased");
+            removeText.Add("mailed to your door");
+            removeText.Add("see website for directions");
+            removeText.Add("click website link to");
+            removeText.Add("to redeem voucher,");
+            removeText.Add("to redeem voucher");
+            removeText.Add("to redeem your voucher,");
+            removeText.Add("to redeem your voucher");
+            removeText.Add("to book your appointment");
+            removeText.Add("include photo");
+            removeText.Add("mailing address and contact number");
+            removeText.Add("please visit:");
+            removeText.Add("please visit");
+            removeText.Add("they come to you");
+            removeText.Add("for reservations");
+            removeText.Add("redeem online by clicking the \"redemption\" link on your voucher");
+            removeText.Add("Redeem online by clicking \"Redemption\" link on your voucher");
+            removeText.Add("online redemption:");
+            removeText.Add("online redemption");
+            removeText.Add("web redemption:");
+            removeText.Add("web redemption");
+            removeText.Add("or redeem");
+            removeText.Add("redeem");
+            removeText.Add("online at");
+            removeText.Add("online:");
+            removeText.Add("online");
+            removeText.Add("or by phone:");
+            removeText.Add("or by phone");
+            removeText.Add("by phone:");
+            removeText.Add("by phone");
+            removeText.Add("mobile service");
+            removeText.Add("mobile service:");
+            removeText.Add("gta mobile");
+            removeText.Add("mobile");
+            removeText.Add("call/email");
+            removeText.Add("or by email:");
+            removeText.Add("or by e-mail:");
+            removeText.Add("or by email");
+            removeText.Add("or by e-mail");
+            removeText.Add("by emailing:");
+            removeText.Add("by emailing");
+            removeText.Add("by email:");
+            removeText.Add("by email");
+            removeText.Add("by e-mail:");
+            removeText.Add("by e-mail");
+            removeText.Add("for inquiries,");
+            removeText.Add("for inquiries");
+            removeText.Add("please call:");
+            removeText.Add("please call");
+            removeText.Add("please");
+            removeText.Add("call:");
+            removeText.Add("or email:");
+            removeText.Add("or email");
+            removeText.Add("email:");
+            removeText.Add("email");
+            removeText.Add("or e-mail:");
+            removeText.Add("or e-mail");
+            removeText.Add("e-mail:");
+            removeText.Add("e-mail");
+            removeText.Add("multiple locations");
+            removeText.Add("valid at");
+            removeText.Add("view locations");
+            removeText.Add("mail out");
+
 
 // Store the data into SQL Database. Clean and handle the data, if needed
             foreach (Tags dd in listOfDeals)
@@ -2036,7 +2209,10 @@ namespace PlayingWithCsharp
                         dd.data[i] = dd.data[i].Remove(b);
                     if (dd.data[i] == "{:-(")
                         dd.data[i] = "";
-                    RemoveSpaces(ref dd.data[i], true);
+                    if (i == 13)
+                        RemoveSpaces(ref dd.data[i], true, false);
+                    else
+                        RemoveSpaces(ref dd.data[i], true, true);
                     if(dd.data[i]==";") 
                         dd.data[i] = "";
                 }
@@ -2056,17 +2232,17 @@ namespace PlayingWithCsharp
                 if (dd.data[18].ToLower() == "http://")
                     dd.data[18] = "";
 
-                DealersPreProcessingData(dd);
+                DealersPreProcessingData(dd, removeText);
 
-                // If it is an online deal (i.e., there is no address, postal code, remove province, country and city. The advertised cities can be caught from OtherData.ListOfCities table
-                if ((dd.data[13] == "") && (dd.data[14] == "") && (dd.data[16] == ""))
+                // If it is an online deal (i.e., there is no address, postal code, remove province, country and city. The advertised cities can be caught from OtherData.ListOfCities table. FullAddress will contain format number, that's why it is considered empty if its lenght is smaller than 5
+                if ((dd.data[13].Length <= 5) && (dd.data[14] == "") && (dd.data[16] == ""))
                 {
                     dd.data[15] = "";
                     dd.data[17] = "";
                     dd.data[43] = "";
                 }
 
-                if (dd.data[13] != "")
+//                if (dd.data[13] != "")
                     locations = evalutatingFullAddress(dd);
 
                 PriceHandling(dd);
@@ -2557,6 +2733,7 @@ namespace PlayingWithCsharp
 
             writer.WriteLine("\n\n" + AtTheEnd);
             writer.Close();
+            Console.WriteLine(DateTime.Now);
 
         }
 
@@ -2572,53 +2749,82 @@ namespace PlayingWithCsharp
             string latitude = "";
             string longitude = "";
             string map = "";*/
+            int format = 0;
+            if (dd.data[13] != "")
+            {
+                if (dd.data[13][0] != '#')
+                {
+                    Console.WriteLine("Missing Address format.\n");
+                    AtTheEnd = AtTheEnd + "Missiing Address format.\n";
+                    dd.data[13] = "";
+                    return locations;
+                }
+                int i = dd.data[13].IndexOf('#', 1);
+                if (i == -1)
+                {
+                    Console.WriteLine("Wrong Address format.\n");
+                    AtTheEnd = AtTheEnd + "Wrong Address format.\n";
+                    dd.data[13] = "";
+                    return locations;
+                }
 
-            if (dd.data[13][0] != '#')
-            {
-                Console.WriteLine("Missing Address format.\n");
-                AtTheEnd = AtTheEnd + "Missiing Address format.\n";
-                dd.data[13] = "";
-                return null;
+                try
+                {
+                    format = Convert.ToInt16(dd.data[13].Substring(1, i - 1));
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("FullAddress DESCRIPTION format is not a number.'" + dd.data[13].Substring(1, i - 1) + " Dealsite: " + dd.data[49] + "\n");
+                    AtTheEnd = AtTheEnd + "FullAddress DESCRIPTION format is not a number.'" + dd.data[13].Substring(1, i - 1) + " Dealsite: " + dd.data[49] + "\n";
+                    return null;
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("One of those format numbers'" + dd.data[31] + "' is outside the range of a Double (ExpiryTime).: " + " Dealsite: " + dd.data[49] + "\n");
+                    AtTheEnd = AtTheEnd + "One of those format numbers'" + dd.data[31] + " is outside the range of a Double (ExpiryTime).: " + " Dealsite: " + dd.data[49] + "\n";
+                    return null;
+                }
+                
+                dd.data[13] = dd.data[13].Remove(0, i + 1);
             }
-            int i = dd.data[13].IndexOf('#',1);
-            if (i == -1)
-            {
-                Console.WriteLine("Wrong Address format.\n");
-                AtTheEnd = AtTheEnd + "Wrong Address format.\n";
+            // FullAddresses that are a mess. They will not be handled at this moment. Hope in the future they will adopt a format so we could handle it.
+            if (format == 2)
                 dd.data[13] = "";
-                return null;
-            }
-            int format = Convert.ToInt16(dd.data[13].Substring(1, i - 1));
-            dd.data[13] = dd.data[13].Remove(0, i + 1);
 
             if (dd.data[13] == "")
             {
-                location dealer_address = new location();
-                dealer_address.SetContact(dd.data[19]);
-                dealer_address.SetPostalCode(dd.data[16]);
-                dealer_address.SetStreetAddress(dd.data[14]);
-                dealer_address.SetCity(dd.data[15]);
-                dealer_address.SetProvince(dd.data[43]);
-                dealer_address.SetCountry(dd.data[17]);
-                if ((dd.data[11] == "") && (dd.data[12] == ""))
-                {
-                    GetLatLong(dealer_address);
-                }
-                else
-                {
-                    dealer_address.SetLatitude(dd.data[11]);
-                    dealer_address.SetLongitude(dd.data[12]);
-                }
-                dealer_address.SetMap(CreateMapLink(dd));
+//                if ((dd.data[14] != "") || (dd.data[15] != "") || (dd.data[43] != "") || (dd.data[17] != "") || (dd.data[16] != "") || (dd.data[19] != "") || (dd.data[11] != "") || (dd.data[12] != "") || (dd.data[18] != ""))
+//                {
+                    location dealer_address = new location();
+                    dealer_address.SetContact(dd.data[19]);
+                    dealer_address.SetPostalCode(dd.data[16]);
+                    dealer_address.SetStreetAddress(dd.data[14]);
+                    dealer_address.SetCity(dd.data[15]);
+                    dd.data[43] = getProvince(dd.data[43], dd.data[17]);
+                    dealer_address.SetProvince(dd.data[43]);
+                    dealer_address.SetCountry(dd.data[17]);
+                    if ((dd.data[11] == "") && (dd.data[12] == ""))
+                    {
+                        GetLatLong(dealer_address, dd);
+                    }
+                    else
+                    {
+                        RoundLatLong(ref dd.data[11], ref dd.data[12], ref AtTheEnd, dd.data[5]);
+                        dealer_address.SetLatitude(dd.data[11]);
+                        dealer_address.SetLongitude(dd.data[12]);
+                    }
+                    dealer_address.SetMap(CreateMapLink(dd));
 
-                if ((dd.data[14] != "") || (dd.data[15] != "") || (dd.data[43] != "") || (dd.data[17] != "") || (dd.data[16] != "") || (dd.data[19] != "") || (dd.data[11] != "") || (dd.data[12] != "") || (dd.data[18] != ""))
-                {
                     locations.SetLocation(dealer_address);
-                    dd.data[13] = dd.data[14] + ", " + dd.data[15] + ", " + dd.data[43] + ", " + dd.data[17] + ", " + dd.data[16] + ", " + dd.data[19] + ", " + dd.data[11] + ", " + dd.data[12] + ", " + dd.data[18];
-                    return locations;
-                }
-                else
-                    return null;
+                    dd.data[13] = dd.data[14]!=""?(dd.data[14] + ", "):"";
+                    dd.data[13] += dd.data[15]!=""?(dd.data[15] + ", "):"";
+                    dd.data[13] += dd.data[43]!=""?(dd.data[43] + ", "):"";
+                    dd.data[13] += dd.data[17]!=""?(dd.data[17] + ", "):"";
+                    dd.data[13] += dd.data[16]!=""?(dd.data[16] + ", "):"";
+                    dd.data[13] += dd.data[19] != "" ? dd.data[19] : "";
+                    RemoveSpaces(ref dd.data[13], true, true);
+  //              }
+                return locations;
             }
 
             if (format == 1) // 1.	City, street, Postal Code, Contact | Contact (EX: DealTicker)
@@ -2630,12 +2836,12 @@ namespace PlayingWithCsharp
                 while (fullAddress.Length > 0)
                 {
                     location dealer_address = new location();
-                    i = fullAddress.LastIndexOf(',');
+                    int i = fullAddress.LastIndexOf(',');
                     if (i == -1)
                         i = 0;
                     aux = fullAddress.Substring(i, fullAddress.Length - i);
                     fullAddress = fullAddress.Remove(i);
-                    RemoveSpaces(ref aux, true);
+                    RemoveSpaces(ref aux, true, true);
                     dealer_address.SetContact(aux);
 
                     if (fullAddress.Length > 0)
@@ -2645,39 +2851,1063 @@ namespace PlayingWithCsharp
                             i = 0;
                         aux = fullAddress.Substring(i, fullAddress.Length - i);
                         fullAddress = fullAddress.Remove(i);
-                        RemoveSpaces(ref aux, true);
-                        dealer_address.SetPostalCode(aux);
-
-                        i = fullAddress.LastIndexOf(',');
-                        if (i == -1)
-                            i = 0;
-                        aux = fullAddress.Substring(i, fullAddress.Length - i);
-                        fullAddress = fullAddress.Remove(i);
-                        RemoveSpaces(ref aux, true);
-                        dealer_address.SetStreetAddress(aux);
-
-                        i = fullAddress.LastIndexOf(';');
-                        if (i == -1)
+                        RemoveSpaces(ref aux, true, true);
+                        if (fullAddress == "")
+                            dealer_address.SetCity(aux);
+                        else
                         {
-                            i = fullAddress.LastIndexOf(',');
+                            dealer_address.SetPostalCode(aux);
+
+                            int b = fullAddress.LastIndexOf(';');
+                            b += 1;
+                            i = fullAddress.IndexOf(',', b);
+                            if (i == -1)
+                                i = fullAddress.Length - 1;
+                            aux = fullAddress.Substring(b, i - b + 1);
+                            fullAddress = fullAddress.Remove(b, i - b + 1);
+                            RemoveSpaces(ref aux, true, true);
+                            dealer_address.SetCity(aux);
+
+                            i = fullAddress.LastIndexOf(';');
                             if (i == -1)
                                 i = 0;
+                            aux = fullAddress.Substring(i, fullAddress.Length - i);
+                            fullAddress = fullAddress.Remove(i);
+                            RemoveSpaces(ref aux, true, true);
+                            dealer_address.SetStreetAddress(aux);
                         }
-                        aux = fullAddress.Substring(i, fullAddress.Length - i);
+                    }
+
+                    dealer_address.SetCountry(dd.data[17]);
+
+                    if ((fullAddress.Length == 0) && (locations.CountLocations() == 0))
+                    {
+                        RemoveSpaces(ref dd.data[19], true, true);
+                        if (dd.data[19] != "")
+                        {
+                            string tempContact = dealer_address.GetContact();
+                            if (!tempContact.Contains(dd.data[19]))
+                                dealer_address.SetContact(tempContact + "; " + dd.data[19]);
+                        }
+                        dd.data[43] = getProvince(dd.data[43], dd.data[17]);
+                        dealer_address.SetProvince(dd.data[43]);
+                        if ((dd.data[11] == "") && (dd.data[12] == ""))
+                        {
+                            GetLatLong(dealer_address, dd);
+                        }
+                        else
+                        {
+                            RoundLatLong(ref dd.data[11], ref dd.data[12], ref AtTheEnd, dd.data[5]);
+                            dealer_address.SetLatitude(dd.data[11]);
+                            dealer_address.SetLongitude(dd.data[12]);
+                        }
+                        dealer_address.SetMap(CreateMapLink(dd));
+                    }
+                    else
+                    {
+                        // Still don't know if DealTicker can have more than one location, so, I don't know if it will includes all of the lat/longit
+                        //  ??? What about Province and Country? ?????????????????????????????????????????????????????
+                        AtTheEnd = AtTheEnd + "WARNING: There is no Province/Country...\n";
+                        GetLatLong(dealer_address, dd);
+                        dealer_address.SetMap(CreateMapLink(dd));
+                    }
+
+                    if ((dealer_address.GetStreetAddress() == "") && (dealer_address.GetPostalCode() == ""))
+                    {
+                        dealer_address.SetCity("");
+                        dealer_address.SetProvince("");
+                        dealer_address.SetCountry("");
+                        dealer_address.SetLatitude("");
+                        dealer_address.SetLongitude("");
+                        dealer_address.SetMap("");
+                    }
+                    else
+                    {
+                        if (dealer_address.GetStreetAddress() == "")
+                            dealer_address.SetStreetAddress(dd.data[14]);
+                        if (dealer_address.GetCity() == "")
+                            dealer_address.SetCity(dd.data[15]);
+                        if (dealer_address.GetPostalCode() == "")
+                            dealer_address.SetPostalCode(dd.data[16]);
+                        if (dealer_address.GetCountry() == "")
+                            dealer_address.SetCountry(dd.data[17]);
+                        if (dd.data[19] != "")
+                        { // contacts can have more than one, like phones and emails
+                            string aux1 = dealer_address.GetContact();
+                            do
+                            {
+                                i = dd.data[19].LastIndexOf(";");
+                                if (i == -1)
+                                    i = 0;
+                                aux = dd.data[19].Substring(i, dd.data[19].Length - i);
+                                dd.data[19] = dd.data[19].Remove(i);
+                                RemoveSpaces(ref aux, true, true);
+                                if (aux1 == "")
+                                    aux1 = aux;
+                                else if (!aux1.Contains(aux))
+                                {
+                                    aux1 = aux1 + "; " + aux;
+                                }
+                            } while (dd.data[19] != "");
+                            dealer_address.SetContact(aux1);
+                        }
+                        if (dealer_address.GetProvince() == "")
+                            dealer_address.SetProvince(dd.data[43]);
+                    }
+
+                    locations.SetLocation(dealer_address);
+//                    dd.data[13] = dd.data[13] != "" ? (dd.data[13] + ", ") : "";
+//                    dd.data[13] += dealer_address.GetStreetAddress() != "" ? (dealer_address.GetStreetAddress() + ", ") : "";
+//                    dd.data[13] += dealer_address.GetCity() != "" ? (dealer_address.GetCity() + ", ") : "";
+//                    dd.data[13] += dealer_address.GetProvince() != "" ? (dealer_address.GetProvince() + ", ") : "";
+//                    dd.data[13] += dealer_address.GetCountry() != "" ? (dealer_address.GetCountry() + ", ") : "";
+//                    dd.data[13] += dealer_address.GetPostalCode() != "" ? (dealer_address.GetPostalCode() + ", ") : "";
+//                    dd.data[13] += dealer_address.GetContact() != "" ? dealer_address.GetContact() : "";
+//                    RemoveSpaces(ref dd.data[13], true, true);
+                }
+//                return locations;
+            }
+            if (format == 2) 
+//          This FullAddresses is a mess. It will not be handled at this moment. Hope in the future it will adopt a format so we could handle it. 
+            {
+            }
+            if (format == 3) // WagJag. Has 3 different formats... 
+            {
+                string fullAddress = dd.data[13];
+                fullAddress = fullAddress.Replace(", ", ",");
+                RemoveSpaces(ref fullAddress, true, true);
+                string aux1, aux2;
+                dd.data[13] = "";
+                int i;
+
+                if (fullAddress != "")
+                {
+                    if ((fullAddress.Length > 10) && (fullAddress.Substring(0, 10) == "sites = [["))
+                    {
+                        i = fullAddress.IndexOf("/$/");
+                        if (i != -1)
+                        {
+                            if (i < 30)
+                                fullAddress = fullAddress.Remove(0, i + 3);
+                            else
+                                fullAddress = fullAddress.Remove(i);
+                        }
+                    }
+                    if ((fullAddress.Length > 10) && (fullAddress.Substring(0, 10) == "sites = [["))
+                    {
+                        if (fullAddress.Length < 30) 
+                            AtTheEnd = AtTheEnd + "FullAddress with no valid data: " + fullAddress + " Dealsite: " + dd.data[5];
+                        else
+                        {
+                            while (fullAddress.Length > 0)
+                            {
+                                location dealer_address = new location();
+
+                                i = fullAddress.IndexOf('[');
+                                fullAddress = fullAddress.Remove(0, i + 1);
+
+                                i = fullAddress.IndexOf('"', 2);
+                                int i1 = fullAddress.IndexOf("'", 2);
+                                if ((i == -1) || ((i1 != -1) && (i1 < i)))
+                                    i = i1;
+                                i = fullAddress.IndexOf(',', i);
+                                fullAddress = fullAddress.Remove(0, i + 1);
+
+                                // get latitude
+                                i = fullAddress.IndexOf(',');
+                                aux1 = fullAddress.Substring(0, i);
+                                fullAddress = fullAddress.Remove(0, i + 1);
+                                RemoveSpaces(ref aux1, true, true);
+
+                                // get longitude
+                                i = fullAddress.IndexOf(',');
+                                aux2 = fullAddress.Substring(0, i);
+                                fullAddress = fullAddress.Remove(0, i + 1);
+                                RemoveSpaces(ref aux2, true, true);
+
+                                dd.data[11] = aux1;
+                                dd.data[12] = aux2;
+
+                                i = fullAddress.IndexOf('"');
+                                if (i == -1)
+                                    i = fullAddress.Length;
+                                i1 = fullAddress.IndexOf('\'');
+                                if ((i1 != -1) && (i1 < i))
+                                    i = i1;
+                                fullAddress = fullAddress.Remove(0, i + 1);
+
+                                i = fullAddress.IndexOf('"');
+                                if (i == -1)
+                                    i = fullAddress.Length;
+                                i1 = fullAddress.IndexOf('\'');
+                                if ((i1 != -1) && (i1 < i))
+                                    i = i1;
+
+                                string partial = fullAddress.Substring(0, i);
+                                if (i != fullAddress.Length)
+                                    fullAddress = fullAddress.Remove(0, i + 1);
+                                else
+                                    fullAddress = "";
+
+                                i = partial.LastIndexOf(',');
+                                if (i == -1)
+                                    i = 0;
+                                aux2 = partial.Substring(i, partial.Length - i);
+                                RemoveSpaces(ref aux2, true, true);
+                                dealer_address.SetCountry(aux2);
+                                partial = partial.Remove(i);
+
+                                if (partial != "")
+                                {
+                                    i = partial.LastIndexOf(',');
+                                    if (i == -1)
+                                        i = 0;
+                                    i = partial.IndexOf(' ', i);
+                                    if (i != -1)
+                                    {
+                                        aux1 = partial.Substring(i, partial.Length - i);
+                                        partial = partial.Remove(i);
+                                        RemoveSpaces(ref aux1, true, true);
+                                        dealer_address.SetPostalCode(aux1);
+                                    }
+
+                                    i = partial.LastIndexOf(',');
+                                    if (i == -1)
+                                        i = 0;
+                                    aux1 = partial.Substring(i, partial.Length - i);
+                                    RemoveSpaces(ref aux1, true, true);
+                                    partial = partial.Remove(i);
+                                    dealer_address.SetProvince(getProvince(aux1, aux2));
+
+                                    if (partial != "")
+                                    {
+                                        i = partial.LastIndexOf(',');
+                                        if (i == -1)
+                                            i = 0;
+                                        aux1 = partial.Substring(i, partial.Length - i);
+                                        RemoveSpaces(ref aux1, true, true);
+                                        partial = partial.Remove(i);
+                                        dealer_address.SetCity(aux1);
+                                    }
+
+                                    RemoveSpaces(ref partial, true, true);
+                                    dealer_address.SetStreetAddress(partial);
+                                }
+
+                                if ((dd.data[11] == "") && (dd.data[12] == ""))
+                                {
+                                    GetLatLong(dealer_address, dd);
+                                }
+                                else
+                                {
+                                    RoundLatLong(ref dd.data[11], ref dd.data[12], ref AtTheEnd, dd.data[5]);
+                                    dealer_address.SetLatitude(dd.data[11]);
+                                    dealer_address.SetLongitude(dd.data[12]);
+                                }
+                                dealer_address.SetMap(CreateMapLink(dd));
+
+                                if ((dealer_address.GetStreetAddress() == "") && (dealer_address.GetPostalCode() == ""))
+                                {
+                                    dealer_address.SetCity("");
+                                    dealer_address.SetProvince("");
+                                    dealer_address.SetCountry("");
+                                    dealer_address.SetLatitude("");
+                                    dealer_address.SetLongitude("");
+                                    dealer_address.SetMap("");
+                                }
+                                else
+                                {
+                                    if (dealer_address.GetStreetAddress() == "")
+                                        dealer_address.SetStreetAddress(dd.data[14]);
+                                    if (dealer_address.GetCity() == "")
+                                        dealer_address.SetCity(dd.data[15]);
+                                    if (dealer_address.GetPostalCode() == "")
+                                        dealer_address.SetPostalCode(dd.data[16]);
+                                    if (dealer_address.GetCountry() == "")
+                                        dealer_address.SetCountry(dd.data[17]);
+                                    if (dd.data[19] != "")
+                                    { // contacts can have more than one, like phones and emails
+                                        aux1 = dealer_address.GetContact();
+                                        do
+                                        {
+                                            i = dd.data[19].LastIndexOf(";");
+                                            if (i == -1)
+                                                i = 0;
+                                            string aux = dd.data[19].Substring(i, dd.data[19].Length - i);
+                                            dd.data[19] = dd.data[19].Remove(i);
+                                            RemoveSpaces(ref aux, true, true);
+                                            if (aux1 == "")
+                                                aux1 = aux;
+                                            else if (!aux1.Contains(aux))
+                                            {
+                                                aux1 = aux1 + "; " + aux;
+                                            }
+                                        } while (dd.data[19] != "");
+                                        dealer_address.SetContact(aux1);
+                                    }
+                                    if (dealer_address.GetProvince() == "")
+                                        dealer_address.SetProvince(dd.data[43]);
+                                }
+
+                                locations.SetLocation(dealer_address);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // removing comments between ()
+                        i = fullAddress.IndexOf('(');
+                        while (i != -1)
+                        {
+                            int j = fullAddress.IndexOf(')', i + 1);
+                            if (j != -1)
+                                fullAddress = fullAddress.Replace(fullAddress.Substring(i, j - i + 1), "");
+                            else
+                                fullAddress = fullAddress.Replace(fullAddress.Substring(i, fullAddress.Length - i), "");
+                            i = fullAddress.IndexOf('(');
+                        }
+                        RemoveSpaces(ref fullAddress, true, true);
+                        if ((fullAddress[0] >= '0') && (fullAddress[0] <= '9'))
+                        {
+                            while (fullAddress.Length > 0)
+                            {
+                                location dealer_address = new location();
+
+                                i = fullAddress.LastIndexOf(';');
+                                aux1 = fullAddress.Substring(i, fullAddress.Length - i);
+                                fullAddress = fullAddress.Remove(i);
+                                RemoveSpaces(ref aux1, true, true);
+                                dealer_address.SetPostalCode(aux1);
+
+                                i = fullAddress.LastIndexOf(' ');
+                                if (i == -1)
+                                    i = 0;
+                                int i1 = fullAddress.LastIndexOf(',');
+                                if (i1 == -1)
+                                    i1 = 0;
+                                if (i1 > i)
+                                    i = i1;
+                                aux1 = fullAddress.Substring(i, fullAddress.Length - i);
+                                fullAddress = fullAddress.Remove(i);
+                                RemoveSpaces(ref aux1, true, true);
+                                dealer_address.SetProvince(getProvince(aux1, dd.data[17]));
+                                dealer_address.SetCountry(dd.data[17]);
+
+                                i = fullAddress.LastIndexOf(';');
+                                aux1 = fullAddress.Substring(i, fullAddress.Length - i);
+                                fullAddress = fullAddress.Remove(i);
+                                RemoveSpaces(ref aux1, true, true);
+                                dealer_address.SetCity(aux1);
+
+                                i = fullAddress.LastIndexOf(";;");
+                                if (i == -1)
+                                    i = 0;
+                                aux1 = fullAddress.Substring(i, fullAddress.Length - i);
+                                fullAddress = fullAddress.Remove(i);
+                                RemoveSpaces(ref aux1, true, true);
+                                dealer_address.SetStreetAddress(aux1);
+
+                                GetLatLong(dealer_address, dd);
+                                dealer_address.SetMap(CreateMapLink(dd));
+
+                                if ((dealer_address.GetStreetAddress() == "") && (dealer_address.GetPostalCode() == ""))
+                                {
+                                    dealer_address.SetCity("");
+                                    dealer_address.SetProvince("");
+                                    dealer_address.SetCountry("");
+                                    dealer_address.SetLatitude("");
+                                    dealer_address.SetLongitude("");
+                                    dealer_address.SetMap("");
+                                }
+                                else
+                                {
+                                    if (dealer_address.GetStreetAddress() == "")
+                                        dealer_address.SetStreetAddress(dd.data[14]);
+                                    if (dealer_address.GetCity() == "")
+                                        dealer_address.SetCity(dd.data[15]);
+                                    if (dealer_address.GetPostalCode() == "")
+                                        dealer_address.SetPostalCode(dd.data[16]);
+                                    if (dealer_address.GetCountry() == "")
+                                        dealer_address.SetCountry(dd.data[17]);
+                                    if (dd.data[19] != "")
+                                    { // contacts can have more than one, like phones and emails
+                                        aux1 = dealer_address.GetContact();
+                                        do
+                                        {
+                                            i = dd.data[19].LastIndexOf(";");
+                                            if (i == -1)
+                                                i = 0;
+                                            string aux = dd.data[19].Substring(i, dd.data[19].Length - i);
+                                            dd.data[19] = dd.data[19].Remove(i);
+                                            RemoveSpaces(ref aux, true, true);
+                                            if (aux1 == "")
+                                                aux1 = aux;
+                                            else if (!aux1.Contains(aux))
+                                            {
+                                                aux1 = aux1 + "; " + aux;
+                                            }
+                                        } while (dd.data[19] != "");
+                                        dealer_address.SetContact(aux1);
+                                    }
+                                    if (dealer_address.GetProvince() == "")
+                                        dealer_address.SetProvince(dd.data[43]);
+                                }
+
+                                locations.SetLocation(dealer_address);
+                            }
+
+                        }
+                        else
+                        {
+                            while (fullAddress.Length > 0)
+                            {
+                                location dealer_address = new location();
+
+                                i = fullAddress.IndexOf("<li>");
+                                if (i != -1)
+                                    fullAddress = fullAddress.Remove(0, i + 4);
+
+                                i = fullAddress.IndexOf(':');
+                                if (i == -1)
+                                    i = fullAddress.Length;
+                                int i1 = fullAddress.IndexOf(',');
+                                if (i1 == -1)
+                                    i1 = fullAddress.Length; ;
+
+                                if (i1 < i) // comma comes first
+                                {
+                                    aux1 = fullAddress.Substring(i1, i - i1);
+                                    RemoveSpaces(ref aux1, true, true);
+                                    dealer_address.SetProvince(getProvince(aux1, dd.data[17]));
+
+                                    int i2 = fullAddress.LastIndexOf(';', i1);
+                                    if (i2 == -1)
+                                        i2 = 0;
+                                    aux1 = fullAddress.Substring(i2, i1 - i2);
+                                    RemoveSpaces(ref aux1, true, true);
+                                    dealer_address.SetCity(aux1);
+                                }
+                                else
+                                {
+
+                                    int i2 = fullAddress.LastIndexOf(';', i == fullAddress.Length ? i - 1 : i);
+                                    if (i2 == -1)
+                                        i2 = 0;
+                                    aux1 = fullAddress.Substring(i2, i - i2);
+                                    RemoveSpaces(ref aux1, true, true);
+                                    dealer_address.SetCity(aux1);
+                                }
+                                fullAddress = fullAddress.Remove(0, i == fullAddress.Length ? i : i + 1);
+
+                                dealer_address.SetCountry(dd.data[17]);
+
+                                if (fullAddress != "")
+                                {
+                                    i = fullAddress.IndexOf(';');
+                                    if (i == -1)
+                                        i = fullAddress.Length;
+
+                                    i1 = fullAddress.LastIndexOf(',', i == fullAddress.Length ? i - 1 : i);
+                                    if (i1 != -1)
+                                    {
+                                        aux1 = fullAddress.Substring(i1, i - i1);
+                                        RemoveSpaces(ref aux1, true, true);
+                                        if (aux1.Length < 3)
+                                        {
+                                            // provincia
+                                            if (dealer_address.GetProvince() == "")
+                                            {
+                                                dealer_address.SetProvince(getProvince(aux1, dd.data[17]));
+                                            }
+                                        }
+                                    }
+
+                                    aux1 = fullAddress.Substring(0, i);
+                                    fullAddress = fullAddress != "" ? fullAddress.Remove(0, i) : "";
+                                    RemoveSpaces(ref aux1, true, true);
+                                    dealer_address.SetStreetAddress(aux1);
+                                }
+
+                                GetLatLong(dealer_address, dd);
+                                dealer_address.SetMap(CreateMapLink(dd));
+
+                                if ((dealer_address.GetStreetAddress() == "") && (dealer_address.GetPostalCode() == ""))
+                                {
+                                    dealer_address.SetCity("");
+                                    dealer_address.SetProvince("");
+                                    dealer_address.SetCountry("");
+                                    dealer_address.SetLatitude("");
+                                    dealer_address.SetLongitude("");
+                                    dealer_address.SetMap("");
+                                }
+                                else
+                                {
+                                    if (dealer_address.GetStreetAddress() == "")
+                                        dealer_address.SetStreetAddress(dd.data[14]);
+                                    if (dealer_address.GetCity() == "")
+                                        dealer_address.SetCity(dd.data[15]);
+                                    if (dealer_address.GetPostalCode() == "")
+                                        dealer_address.SetPostalCode(dd.data[16]);
+                                    if (dealer_address.GetCountry() == "")
+                                        dealer_address.SetCountry(dd.data[17]);
+                                    if (dd.data[19] != "")
+                                    { // contacts can have more than one, like phones and emails
+                                        aux1 = dealer_address.GetContact();
+                                        do
+                                        {
+                                            i = dd.data[19].LastIndexOf(";");
+                                            if (i == -1)
+                                                i = 0;
+                                            string aux = dd.data[19].Substring(i, dd.data[19].Length - i);
+                                            dd.data[19] = dd.data[19].Remove(i);
+                                            RemoveSpaces(ref aux, true, true);
+                                            if (aux1 == "")
+                                                aux1 = aux;
+                                            else if (!aux1.Contains(aux))
+                                            {
+                                                aux1 = aux1 + "; " + aux;
+                                            }
+                                        } while (dd.data[19] != "");
+                                        dealer_address.SetContact(aux1);
+                                    }
+                                    if (dealer_address.GetProvince() == "")
+                                        dealer_address.SetProvince(dd.data[43]);
+                                }
+
+                                locations.SetLocation(dealer_address);
+                            }
+                        }
+                    }
+                }
+
+            }
+            if (format == 4) // google maps description and text, from TeamBuy
+            {
+
+
+                string fullAddress = dd.data[13];
+                RemoveSpaces(ref fullAddress, true, true);
+                string aux1, aux2;
+                dd.data[13] = "";
+                int i = fullAddress.IndexOf("?f=q&");
+
+                while (i != -1)
+                {
+                    location dealer_address = new location();
+                    i = fullAddress.LastIndexOf('%', i);
+
+                    int i1 = fullAddress.IndexOf(';',i);
+                    if (i1 == -1)
+                        i1 = fullAddress.Length;
+
+                    string partial = fullAddress.Substring(i, i1 - i);
+                    fullAddress = fullAddress.Remove(i, i1 - i);
+                    RemoveSpaces(ref fullAddress, true, true);
+
+                    partial = partial.Replace('+', ' ');
+
+                    if (partial.ToLower().IndexOf("multiple locations") != -1)
+                    {
+                        i = fullAddress.IndexOf("?f=q&");
+                        continue;
+                    }
+
+                    i = partial.IndexOf("&sll=");
+                    i1 = partial.IndexOf(',',i);
+                    i += 5;
+
+                    // get latitude
+                    dd.data[11] = partial.Substring(i, i1 - i);
+                    RemoveSpaces(ref dd.data[11], true, true);
+
+                    // get longitude
+                    int i2 = partial.IndexOf('&', i1);
+                    dd.data[12] = partial.Substring(i1, i2 - i1);
+                    RemoveSpaces(ref dd.data[12], true, true);
+
+                    partial = partial.Remove(i - 5, partial.Length - (i - 5));
+
+                    dealer_address.SetCountry(dd.data[17]);
+
+                    if (partial.Substring(0, 5) == "%loca")
+                    {
+                        i = partial.IndexOf("?f=q&");
+                        aux1 = partial.Substring(5, i - 5);
+                        RemoveSpaces(ref aux1, true, true);
+                        dealer_address.SetStreetAddress(aux1);
+
+                        i = partial.IndexOf(aux1, i);
+                        i += aux1.Length;
+                        partial = partial.Remove(0, i);
+                        RemoveSpaces(ref partial, true, true);
+
+                        if ((partial[partial.Length - 1] >= '0') && (partial[partial.Length - 1] <= '9'))
+                        { // Complete postal code
+                            i = partial.LastIndexOf(' ');
+                            if (partial.Length -i < 6)
+                                i = partial.LastIndexOf(' ', i - 1);
+                            aux1 = partial.Substring(i, partial.Length - i);
+                            partial = partial.Remove(i);
+                            RemoveSpaces(ref aux1, true, true);
+                            dealer_address.SetPostalCode(aux1);
+                        }
+                        else if ((partial[partial.Length - 2] >= '0') && (partial[partial.Length - 2] <= '9'))
+                        { // Partial postal code
+                            i = partial.LastIndexOf(' ');
+                            aux1 = partial.Substring(i, partial.Length - i);
+                            partial = partial.Remove(i);
+                            RemoveSpaces(ref aux1, true, true);
+                            dealer_address.SetPostalCode(aux1);
+                        }
+                        i = partial.LastIndexOf(' ');
+                        if (i == -1)
+                            i = 0;
+                        aux1 = partial.Substring(i, partial.Length - i);
+                        RemoveSpaces(ref aux1, true, true);
+                        if (aux1.Length > 2)
+                        {
+
+                            if ((aux1.ToLower() == "alberta") || (aux1.ToLower() == "manitoba") || (aux1.ToLower() == "ontario") || (aux1.ToLower() == "quebec") || (aux1.ToLower() == "saskatchewan") || (aux1.ToLower() == "nunavut") || (aux1.ToLower() == "yukon") ||
+                                (aux1.ToLower() == "alabama") || (aux1.ToLower() == "alaska") || (aux1.ToLower() == "arizona") || (aux1.ToLower() == "arkansas") || 
+                                (aux1.ToLower() == "california") || (aux1.ToLower() == "colorado") || (aux1.ToLower() == "connecticut") || (aux1.ToLower() == "delaware") || 
+                                (aux1.ToLower() == "florida") || (aux1.ToLower() == "georgia") || (aux1.ToLower() == "hawaii") || (aux1.ToLower() == "idaho") || 
+                                (aux1.ToLower() == "illinois") || (aux1.ToLower() == "indiana") || (aux1.ToLower() == "iowa") || (aux1.ToLower() == "kansas") || 
+                                (aux1.ToLower() == "kentucky") || (aux1.ToLower() == "louisiana") || (aux1.ToLower() == "maine") || (aux1.ToLower() == "maryland") || 
+                                (aux1.ToLower() == "massachusetts") || (aux1.ToLower() == "michigan") || (aux1.ToLower() == "minnesota") || (aux1.ToLower() == "mississippi") || 
+                                (aux1.ToLower() == "missouri") || (aux1.ToLower() == "montana") || (aux1.ToLower() == "nebraska") || (aux1.ToLower() == "nevada") || 
+                                (aux1.ToLower() == "ohio") || (aux1.ToLower() == "oklahoma") || (aux1.ToLower() == "oregon") || (aux1.ToLower() == "pennsylvania") || 
+                                (aux1.ToLower() == "tennessee") || (aux1.ToLower() == "texas") || (aux1.ToLower() == "utah") || (aux1.ToLower() == "vermont") || 
+                                (aux1.ToLower() == "virginia") || (aux1.ToLower() == "washington") || (aux1.ToLower() == "wisconsin") || (aux1.ToLower() == "wyoming"))
+                            {
+                                partial = partial.Remove(i);
+                                dealer_address.SetProvince(aux1);
+                            }
+                            else if (i > 0)
+                            {
+                                i = partial.LastIndexOf(' ', i - 1);
+                                if (i == -1)
+                                    i = 0;
+                                aux1 = partial.Substring(i, partial.Length - i);
+                                RemoveSpaces(ref aux1, true, true);
+                                if ((aux1.ToLower() == "british columbia") || (aux1.ToLower() == "new brunswick") || (aux1.ToLower() == "nova scotia") || (aux1.ToLower() == "northwest territories") ||
+                                (aux1.ToLower() == "new hampshire") || (aux1.ToLower() == "new jersey") || (aux1.ToLower() == "new mexico") || (aux1.ToLower() == "new york") || 
+                                (aux1.ToLower() == "north carolina") || (aux1.ToLower() == "north dakota") || (aux1.ToLower() == "rhode island") || (aux1.ToLower() == "south carolina") ||
+                                (aux1.ToLower() == "south dakota") || (aux1.ToLower() == "west virginia"))
+                                {
+                                    partial = partial.Remove(i);
+                                    dealer_address.SetProvince(aux1);
+                                }
+                                else if (i > 0)
+                                {
+                                    i = partial.LastIndexOf(' ');
+                                    if (i == -1)
+                                        i = 0;
+                                    aux1 = partial.Substring(i, partial.Length - i);
+                                    RemoveSpaces(ref aux1, true, true);
+                                    if ((aux1.ToLower() == "newfoundland and labrador") || (aux1.ToLower() == "prince edward island"))
+                                    {
+                                        partial = partial.Remove(i);
+                                        dealer_address.SetProvince(aux1);
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            partial = partial.Remove(i);
+                            dealer_address.SetProvince(getProvince(aux1, dd.data[17]));
+                        }
+                        RemoveSpaces(ref partial, true, true);
+                        dealer_address.SetCity(partial);
+                    }
+                    else
+                    { // it is %city
+                        i = partial.IndexOf("?f=q&");
+                        aux1 = partial.Substring(5, i - 5);
+                        RemoveSpaces(ref aux1, true, true);
+                        dealer_address.SetCity(aux1);
+
+                        i = partial.LastIndexOf(aux1);
+                        i1 = partial.LastIndexOf("&q=", i);
+                        i1 += 3;
+
+                        aux2 = partial.Substring(i1, i - i1);
+                        RemoveSpaces(ref aux2, true, true);
+                        dealer_address.SetStreetAddress(aux2);
+
+                        i += aux1.Length;
+                        partial = partial.Remove(0, i);
+                        RemoveSpaces(ref partial, true, true);
+
+                        if ((partial[partial.Length - 1] >= '0') && (partial[partial.Length - 1] <= '9'))
+                        { // Complete postal code
+                            i = partial.LastIndexOf(' ');
+                            i = partial.LastIndexOf(' ', i - 1);
+                            aux1 = partial.Substring(i, partial.Length - i);
+                            partial = partial.Remove(i);
+                            RemoveSpaces(ref aux1, true, true);
+                            dealer_address.SetPostalCode(aux1);
+                            RemoveSpaces(ref partial, true, true);
+                        }
+                        else if ((partial[partial.Length - 2] >= '0') && (partial[partial.Length - 2] <= '9'))
+                        { // Partial postal code
+                            i = partial.LastIndexOf(' ');
+                            aux1 = partial.Substring(i, partial.Length - i);
+                            partial = partial.Remove(i);
+                            RemoveSpaces(ref aux1, true, true);
+                            dealer_address.SetPostalCode(aux1);
+                            RemoveSpaces(ref partial, true, true);
+                        }
+                        dealer_address.SetProvince(partial);
+                    }
+
+                    if ((dd.data[11] == "") && (dd.data[12] == ""))
+                    {
+                        GetLatLong(dealer_address, dd);
+                    }
+                    else
+                    {
+                        RoundLatLong(ref dd.data[11], ref dd.data[12], ref AtTheEnd, dd.data[5]);
+                        dealer_address.SetLatitude(dd.data[11]);
+                        dealer_address.SetLongitude(dd.data[12]);
+                    }
+                    dealer_address.SetMap(CreateMapLink(dd));
+
+                    if ((dealer_address.GetStreetAddress() == "") && (dealer_address.GetPostalCode() == ""))
+                    {
+                        dealer_address.SetCity("");
+                        dealer_address.SetProvince("");
+                        dealer_address.SetCountry("");
+                        dealer_address.SetLatitude("");
+                        dealer_address.SetLongitude("");
+                        dealer_address.SetMap("");
+                    }
+                    else
+                    {
+                        if (dealer_address.GetStreetAddress() == "")
+                            dealer_address.SetStreetAddress(dd.data[14]);
+                        if (dealer_address.GetCity() == "")
+                            dealer_address.SetCity(dd.data[15]);
+                        if (dealer_address.GetPostalCode() == "")
+                            dealer_address.SetPostalCode(dd.data[16]);
+                        if (dealer_address.GetCountry() == "")
+                            dealer_address.SetCountry(dd.data[17]);
+                        if (dd.data[19] != "")
+                        { // contacts can have more than one, like phones and emails
+                            aux1 = dealer_address.GetContact();
+                            do
+                            {
+                                i = dd.data[19].LastIndexOf(";");
+                                if (i == -1)
+                                    i = 0;
+                                string aux = dd.data[19].Substring(i, dd.data[19].Length - i);
+                                dd.data[19] = dd.data[19].Remove(i);
+                                RemoveSpaces(ref aux, true, true);
+                                if (aux1 == "")
+                                    aux1 = aux;
+                                else if (!aux1.Contains(aux))
+                                {
+                                    aux1 = aux1 + "; " + aux;
+                                }
+                            } while (dd.data[19] != "");
+                            dealer_address.SetContact(aux1);
+                        }
+                        if (dealer_address.GetProvince() == "")
+                            dealer_address.SetProvince(dd.data[43]);
+                    }
+
+
+                    locations.SetLocation(dealer_address);
+
+                    i = fullAddress.IndexOf("?f=q&");
+                }
+
+                while (fullAddress != "")
+                {
+                    location dealer_address = new location();
+
+                    i = fullAddress.LastIndexOf('-');
+                    if (i != -1)
+                    {
+                        aux1 = fullAddress.Substring(i + 1, fullAddress.Length - i);
+                        RemoveSpaces(ref aux1, true, true);
+                        dealer_address.SetContact(aux1);
                         fullAddress = fullAddress.Remove(i);
-                        RemoveSpaces(ref aux, true);
-                        dealer_address.SetCity(aux);
+                    }
+
+                    i = fullAddress.LastIndexOf(':');
+                    if (i != -1)
+                    {
+                        aux1 = fullAddress.Substring(i + 1, fullAddress.Length - i);
+                        RemoveSpaces(ref aux1, true, true);
+                        dealer_address.SetStreetAddress(aux1);
+                        fullAddress = fullAddress.Remove(i);
+                    }
+
+                    i = fullAddress.LastIndexOf(';');
+                    if (i == -1)
+                        i = 0;
+                    aux1 = fullAddress.Substring(i, fullAddress.Length - i);
+                    RemoveSpaces(ref aux1, true, true);
+                    dealer_address.SetCity(aux1);
+                    fullAddress = fullAddress.Remove(i);
+
+                    dealer_address.SetCountry(dd.data[17]);
+
+                    GetLatLong(dealer_address, dd);
+                    dealer_address.SetMap(CreateMapLink(dd));
+
+                    if ((dealer_address.GetStreetAddress() == "") && (dealer_address.GetPostalCode() == ""))
+                    {
+                        dealer_address.SetCity("");
+                        dealer_address.SetProvince("");
+                        dealer_address.SetCountry("");
+                        dealer_address.SetLatitude("");
+                        dealer_address.SetLongitude("");
+                        dealer_address.SetMap("");
+                    }
+                    else
+                    {
+                        if (dealer_address.GetStreetAddress() == "")
+                            dealer_address.SetStreetAddress(dd.data[14]);
+                        if (dealer_address.GetCity() == "")
+                            dealer_address.SetCity(dd.data[15]);
+                        if (dealer_address.GetPostalCode() == "")
+                            dealer_address.SetPostalCode(dd.data[16]);
+                        if (dealer_address.GetCountry() == "")
+                            dealer_address.SetCountry(dd.data[17]);
+                        if (dd.data[19] != "")
+                        { // contacts can have more than one, like phones and emails
+                            aux1 = dealer_address.GetContact();
+                            do
+                            {
+                                i = dd.data[19].LastIndexOf(";");
+                                if (i == -1)
+                                    i = 0;
+                                string aux = dd.data[19].Substring(i, dd.data[19].Length - i);
+                                dd.data[19] = dd.data[19].Remove(i);
+                                RemoveSpaces(ref aux, true, true);
+                                if (aux1 == "")
+                                    aux1 = aux;
+                                else if (!aux1.Contains(aux))
+                                {
+                                    aux1 = aux1 + "; " + aux;
+                                }
+                            } while (dd.data[19] != "");
+                            dealer_address.SetContact(aux1);
+                        }
+                        if (dealer_address.GetProvince() == "")
+                            dealer_address.SetProvince(dd.data[43]);
+                    }
+
+                    locations.SetLocation(dealer_address);
+
+                    RemoveSpaces(ref fullAddress, true, true);
+                }
+            }
+
+            if (format == 5) // 2.	street; City, [Province] [Postal Code]; [Contact] | street; [Postal Code] City; [Contact] && Lat/Longit from dd.data[18] - maps (International - . Ex: LivingSocial) 
+            {
+                List<string> countryList1 = new List<string>();
+                List<string> countryList2 = new List<string>();
+
+                countryList1.Add("Netherlands");
+
+                countryList2.Add("Canada");
+                countryList2.Add("United States");
+                countryList2.Add("New Zealand");
+                countryList2.Add("Australia");
+
+                string fullAddress = dd.data[13];
+                string aux1, aux2;
+                dd.data[13] = "";
+
+                while (fullAddress.Length > 0)
+                {
+                    Boolean isPhone = true;
+                    location dealer_address = new location();
+
+                    while (fullAddress.Contains(";;"))
+                        fullAddress = fullAddress.Replace(";;",";");
+
+                    int i = fullAddress.LastIndexOf(';');
+                    if (i == -1)
+                        i = 0;
+
+                    aux1 = fullAddress.Substring(i, fullAddress.Length - i);
+                    RemoveSpaces(ref aux1, true, true);
+                    
+                    aux2 = aux1.Replace(" ","");
+
+                    aux2 = aux2.Replace("(","");
+                    aux2 = aux2.Replace(")","");
+                    aux2 = aux2.Replace("-","");
+                    aux2 = aux2.Replace(".","");
+                    aux2 = aux2.Replace("_","");
+
+                    if (aux2.Length >= 6)
+                    {
+                        try
+                        {
+                            // if first 6 digits are number, it is considered a phone number
+                            int test = Convert.ToInt32(aux2.Substring(0, 6));
+                        }
+                        catch (FormatException)
+                        {
+                            try
+                            {
+                                int test = Convert.ToInt32(aux2.Substring(0, 3));
+                                test = Convert.ToInt32(aux2.Substring(aux2.Length - 3, 3));
+                            }
+                            catch (FormatException)
+                            {
+                                isPhone = false;
+                            }
+                        }
+                    }
+                    else
+                        isPhone = false;
+
+                    if (isPhone)
+                    {
+                        fullAddress = fullAddress.Remove(i);
+                        dealer_address.SetContact(aux1);
+                    }
+
+                    if (fullAddress.Length > 0)
+                    {
+                        i = fullAddress.LastIndexOf(';');
+                        if (i == -1)
+                            i = 0;
+
+                        int i1 = fullAddress.LastIndexOf(',');
+                        if (i1 == -1)
+                            i1 = 0;
+
+                        if (i > i1)
+                        {
+                            aux1 = fullAddress.Substring(i, fullAddress.Length - i);
+                            RemoveSpaces(ref aux1, true, true);
+
+                            int sep = aux1.IndexOf(' ');
+                            if (sep == -1)
+                                sep = aux1.Length;
+//                            int sep2 = -1;
+                            if (countryList1.Contains(dd.data[17]))
+                            {
+                                if (sep + 1 < aux1.Length)
+                                {
+                                    int sep1 = aux1.IndexOf(' ', sep + 1);
+                                    if (sep1 != -1)
+                                        sep = sep1;
+//                                   sep2 = aux1.IndexOf(' ', sep + 1);
+                                }
+                            }
+//                            if (sep2 != -1)
+//                                aux2 = aux1.Substring(sep2, aux1.Length - sep2);
+//                            else
+                                aux2 = aux1.Substring(sep, aux1.Length - sep);
+
+                            RemoveSpaces(ref aux2, true, true);
+                            dealer_address.SetCity(aux2);
+
+                            aux2 = aux1.Substring(0, sep);
+                            RemoveSpaces(ref aux2, true, true);
+                            dealer_address.SetPostalCode(aux2);
+                        }
+                        else
+                        {
+                            aux1 = fullAddress.Substring(i1, fullAddress.Length - i1);
+                            RemoveSpaces(ref aux1, true, true);
+                            if (aux1 != "")
+                            {
+                                if (countryList2.Contains(dd.data[17]))
+                                {
+                                    int sep = aux1.IndexOf(' ');
+
+                                    if (sep == -1)
+                                    {
+                                        aux2 = aux1;
+                                        RemoveSpaces(ref aux2, true, true);
+                                        if (aux2.Length > 2)
+                                        {
+                                            dealer_address.SetPostalCode(aux2);
+                                        }
+                                        else
+                                        {
+                                            dealer_address.SetProvince(getProvince(aux2, dd.data[17]));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        aux2 = aux1.Substring(sep, aux1.Length - sep);
+                                        RemoveSpaces(ref aux2, true, true);
+                                        dealer_address.SetPostalCode(aux2);
+
+                                        aux2 = aux1.Substring(0, sep);
+                                        RemoveSpaces(ref aux2, true, true);
+                                        dealer_address.SetProvince(getProvince(aux2, dd.data[17]));
+                                    }
+                                }
+                                else
+                                {
+                                    if (dd.data[17] == "United Kingdom")
+                                    {
+                                        int sep = aux1.IndexOf(' ');
+
+                                        if ((sep == -1) || (aux1.Length - sep < 6))
+                                        {
+                                            dealer_address.SetPostalCode(aux1);
+                                        }
+                                        else
+                                        {
+                                            aux2 = aux1.Substring(sep, aux1.Length - sep);
+                                            RemoveSpaces(ref aux2, true, true);
+                                            dealer_address.SetPostalCode(aux2);
+
+                                            aux2 = aux1.Substring(0, sep);
+                                            RemoveSpaces(ref aux2, true, true);
+                                            dealer_address.SetProvince(getProvince(aux2, dd.data[17]));
+                                        }
+                                    }
+                                    else
+                                        dealer_address.SetPostalCode(aux1);
+                                }
+                            }
+                            aux1 = fullAddress.Substring(i, i1 - i);
+                            RemoveSpaces(ref aux1, true, true);
+                            dealer_address.SetCity(aux1);
+                        }
+                        fullAddress = fullAddress.Remove(i);
+
+                        i = fullAddress.LastIndexOf('|');
+                        if (i == -1)
+                            i = 0;
+                        aux1 = fullAddress.Substring(i, fullAddress.Length - i);
+                        RemoveSpaces(ref aux1, true, true);
+                        dealer_address.SetStreetAddress(aux1);
+                        fullAddress = fullAddress!=""?fullAddress.Remove(i):"";
+                        
+                        dealer_address.SetCountry(dd.data[17]);
 
                         if ((fullAddress.Length == 0) && (locations.CountLocations() == 0))
                         {
-                            dealer_address.SetProvince(dd.data[43]);
-                            dealer_address.SetCountry(dd.data[17]);
+                            if (dealer_address.GetProvince() == "")
+                            {
+                                RemoveSpaces(ref dd.data[43], true, true);
+                                if (dd.data[43] != "")
+                                {
+                                    dd.data[43] = getProvince(dd.data[43], dd.data[17]);
+                                    dealer_address.SetProvince(dd.data[43]);
+                                }
+                            }
                             if ((dd.data[11] == "") && (dd.data[12] == ""))
                             {
-                                GetLatLong(dealer_address);
+                                GetLatLong(dealer_address, dd);
                             }
                             else
                             {
+                                RoundLatLong(ref dd.data[11], ref dd.data[12], ref AtTheEnd, dd.data[5]);
                                 dealer_address.SetLatitude(dd.data[11]);
                                 dealer_address.SetLongitude(dd.data[12]);
                             }
@@ -2685,36 +3915,561 @@ namespace PlayingWithCsharp
                         }
                         else
                         {
-                            //  ??? What about Province and Country? ?????????????????????????????????????????????????????
-                            AtTheEnd = AtTheEnd + "WARNING: There is no Province/Country...\n";
-                            GetLatLong(dealer_address);
+                            // Get Latitude and Longitude from dd.data[18]
+                            i = dd.data[18].LastIndexOf('|');
+                            if (i == -1)
+                                i = 0;
+                            aux1 = dd.data[18].Substring(i, dd.data[18].Length - i);
+                            dd.data[18] = dd.data[18] != ""?dd.data[18].Remove(i):"";
+                            RemoveSpaces(ref aux1, true, true);
+
+                            i = aux1.IndexOf('=');
+                            i1 = i!=-1?aux1.IndexOf(',', i):-1;
+
+                            if ((i != -1) && (i1 != -1))
+                            {
+                                aux2 = aux1.Substring(i + 1, i1 - i);
+                                RemoveSpaces(ref aux2, true, true);
+                                dd.data[11] = aux2;
+
+                                aux2 = aux1.Substring(i1, aux1.Length - i1);
+                                RemoveSpaces(ref aux2, true, true);
+                                dd.data[12] = aux2;
+
+                                RoundLatLong(ref dd.data[11], ref dd.data[12], ref AtTheEnd, dd.data[5]);
+                                dealer_address.SetLatitude(dd.data[11]);
+                                dealer_address.SetLongitude(dd.data[12]);
+                            }
+                            else
+                            {
+                                GetLatLong(dealer_address, dd);
+                            } 
                             dealer_address.SetMap(CreateMapLink(dd));
                         }
 
-                        locations.SetLocation(dealer_address);
-                        dd.data[13] = dd.data[13] + ", " + dealer_address.GetStreetAddress() + ", " + dealer_address.GetCity() + ", " + dealer_address.GetProvince() + ", " + dealer_address.GetCountry() + ", " + dealer_address.GetPostalCode() + ", " + dealer_address.GetContact() + ", " + dealer_address.GetLatitude() + ", " + dealer_address.GetLongitude() + ", " + dealer_address.GetMap();
+                        if ((dealer_address.GetStreetAddress() == "") && (dealer_address.GetPostalCode() == ""))
+                        {
+                            dealer_address.SetCity("");
+                            dealer_address.SetProvince("");
+                            dealer_address.SetCountry("");
+                            dealer_address.SetLatitude("");
+                            dealer_address.SetLongitude("");
+                            dealer_address.SetMap("");
+                        }
+                        else 
+                        {
+                            if (dealer_address.GetStreetAddress() == "")
+                                dealer_address.SetStreetAddress(dd.data[14]);
+                            if (dealer_address.GetCity() == "")
+                                dealer_address.SetCity(dd.data[15]);
+                            if (dealer_address.GetPostalCode() == "")
+                                dealer_address.SetPostalCode(dd.data[16]);
+                            if (dealer_address.GetCountry() == "")
+                                dealer_address.SetCountry(dd.data[17]);
+                            if (dd.data[19] != "")
+                            { // contacts can have more than one, like phones and emails
+                                aux1 = dealer_address.GetContact();
+                                do
+                                {
+                                    i = dd.data[19].LastIndexOf(";");
+                                    if (i == -1)
+                                        i = 0;
+                                    string aux = dd.data[19].Substring(i, dd.data[19].Length - i);
+                                    dd.data[19] = dd.data[19].Remove(i);
+                                    RemoveSpaces(ref aux, true, true);
+                                    if (aux1 == "")
+                                        aux1 = aux;
+                                    else if (!aux1.Contains(aux))
+                                    {
+                                        aux1 = aux1 + "; " + aux;
+                                    }
+                                } while (dd.data[19] != "");
+                                dealer_address.SetContact(aux1);
+                            }
+                            if (dealer_address.GetProvince() == "")
+                                dealer_address.SetProvince(dd.data[43]);
+                        }
+                    }
+                    
+                    locations.SetLocation(dealer_address);
+//                    dd.data[13] = dd.data[13] != "" ? (dd.data[13] + ", ") : "";
+//                    dd.data[13] += dealer_address.GetStreetAddress() != "" ? (dealer_address.GetStreetAddress() + ", ") : "";
+//                    dd.data[13] += dealer_address.GetCity() != "" ? (dealer_address.GetCity() + ", ") : "";
+//                    dd.data[13] += dealer_address.GetProvince() != "" ? (dealer_address.GetProvince() + ", ") : "";
+//                    dd.data[13] += dealer_address.GetCountry() != "" ? (dealer_address.GetCountry() + ", ") : "";
+//                    dd.data[13] += dealer_address.GetPostalCode() != "" ? (dealer_address.GetPostalCode() + ", ") : "";
+//                    dd.data[13] += dealer_address.GetContact() != "" ? dealer_address.GetContact() : "";
+//                    RemoveSpaces(ref dd.data[13], true, true);
+                }
+//                return locations;
+            }
+            if (format == 6)
+            {
+                string fullAddress = dd.data[13];
+                RemoveSpaces(ref fullAddress, true, true);
+                string aux1, aux2;
+                dd.data[13] = "";
+                int i;
+                Boolean isPhone = true;
+                location dealer_address = new location();
+
+                i = fullAddress.LastIndexOf(';');
+                if (i == -1)
+                    i = 0;
+
+                aux1 = fullAddress.Substring(i, fullAddress.Length - i);
+                RemoveSpaces(ref aux1, true, true);
+
+                aux2 = aux1.Replace(" ", "");
+                aux2 = aux2.Replace("(", "");
+                aux2 = aux2.Replace(")", "");
+                aux2 = aux2.Replace("-", "");
+                aux2 = aux2.Replace(".", "");
+                aux2 = aux2.Replace("_", "");
+
+                if (aux2.Length >= 6)
+                {
+                    try
+                    {
+                        // if first 6 digits are number, it is considered a phone number
+                        int test = Convert.ToInt32(aux2.Substring(0, 6));
+                    }
+                    catch (FormatException)
+                    {
+                        try
+                        {
+                            int test = Convert.ToInt32(aux2.Substring(0, 3));
+                            test = Convert.ToInt32(aux2.Substring(aux2.Length - 3, 3));
+                        }
+                        catch (FormatException)
+                        {
+                            isPhone = false;
+                        }
                     }
                 }
-                return locations;
+                else
+                    isPhone = false;
+
+                if (isPhone)
+                {
+                    fullAddress = fullAddress.Remove(i);
+                    RemoveSpaces(ref fullAddress, true, true);
+                    dealer_address.SetContact(aux1);
+                }
+
+                // removing comments between ()
+                i = fullAddress.IndexOf('(');
+                while (i != -1)
+                {
+                    int j = fullAddress.IndexOf(')', i + 1);
+                    if (j != -1)
+                        fullAddress = fullAddress.Replace(fullAddress.Substring(i, j - i + 1), "");
+                    else
+                        fullAddress = fullAddress.Replace(fullAddress.Substring(i, fullAddress.Length - i), "");
+                    i = fullAddress.IndexOf('(');
+                }
+                RemoveSpaces(ref fullAddress, true, true);
+
+                i = fullAddress.LastIndexOf(';');
+                if (i == -1)
+                    i = 0;
+                int i1 = fullAddress.LastIndexOf(',');
+                if (i1 == -1)
+                    i1 = 0;
+                if (i1 > i)
+                    i = i1;
+
+                aux1 = fullAddress.Substring(i, fullAddress.Length - i);
+                fullAddress = fullAddress.Remove(i);
+                RemoveSpaces(ref aux1, true, true);
+
+                i = aux1.LastIndexOf(' ');
+                if (i == -1)
+                    dealer_address.SetCity(aux1);
+                else
+                {
+                    aux2 = aux1.Substring(i, aux1.Length - i);
+                    RemoveSpaces(ref aux2, true, true);
+                    if ((aux2[1] >= '0') && (aux2[1]) <= '9')
+                    {
+                        dealer_address.SetPostalCode(aux2);
+                        aux1 = aux1.Remove(i);
+                        i = aux1.LastIndexOf(' ');
+                        if (i == -1)
+                        {
+                            i = 0;
+                        }
+                        aux2 = aux1.Substring(i, aux1.Length - i);
+                        RemoveSpaces(ref aux2, true, true);
+                    }
+                    if (aux2.Length <= 3)
+                    {
+                        dealer_address.SetProvince(getProvince(aux2, dd.data[17]));
+                        aux1 = aux1.Remove(i);
+                    }
+                    RemoveSpaces(ref aux1, true, true);
+                    dealer_address.SetCity(aux1);
+                }
+                RemoveSpaces(ref fullAddress, true, true);
+                dealer_address.SetStreetAddress(fullAddress);
+
+                dealer_address.SetCountry(dd.data[17]);
+
+                GetLatLong(dealer_address, dd);
+                dealer_address.SetMap(CreateMapLink(dd));
+
+                if ((dealer_address.GetStreetAddress() == "") && (dealer_address.GetPostalCode() == ""))
+                {
+                    dealer_address.SetCity("");
+                    dealer_address.SetProvince("");
+                    dealer_address.SetCountry("");
+                    dealer_address.SetLatitude("");
+                    dealer_address.SetLongitude("");
+                    dealer_address.SetMap("");
+                }
+                else
+                {
+                    if (dealer_address.GetStreetAddress() == "")
+                        dealer_address.SetStreetAddress(dd.data[14]);
+                    if (dealer_address.GetCity() == "")
+                        dealer_address.SetCity(dd.data[15]);
+                    if (dealer_address.GetPostalCode() == "")
+                        dealer_address.SetPostalCode(dd.data[16]);
+                    if (dealer_address.GetCountry() == "")
+                        dealer_address.SetCountry(dd.data[17]);
+                    if (dd.data[19] != "")
+                    { // contacts can have more than one, like phones and emails
+                        aux1 = dealer_address.GetContact();
+                        do
+                        {
+                            i = dd.data[19].LastIndexOf(";");
+                            if (i == -1)
+                                i = 0;
+                            string aux = dd.data[19].Substring(i, dd.data[19].Length - i);
+                            dd.data[19] = dd.data[19].Remove(i);
+                            RemoveSpaces(ref aux, true, true);
+                            if (aux1 == "")
+                                aux1 = aux;
+                            else if (!aux1.Contains(aux))
+                            {
+                                aux1 = aux1 + "; " + aux;
+                            }
+                        } while (dd.data[19] != "");
+                        dealer_address.SetContact(aux1);
+                    }
+                    if (dealer_address.GetProvince() == "")
+                        dealer_address.SetProvince(dd.data[43]);
+                }
+
+                locations.SetLocation(dealer_address);
+
             }
-            if (format == 2) // 
+            locations = locations.sortByProvinceCityAndStreetAddress(locations);
+            for (int loc = 0; loc < locations.CountLocations(); loc++)
             {
+                location temp = locations.getLocation(loc);
+                dd.data[13] = dd.data[13] != "" ? (dd.data[13] + ", ") : "";
+                dd.data[13] += temp.GetStreetAddress() != "" ? (temp.GetStreetAddress() + ", ") : "";
+                dd.data[13] += temp.GetCity() != "" ? (temp.GetCity() + ", ") : "";
+                dd.data[13] += temp.GetProvince() != "" ? (temp.GetProvince() + ", ") : "";
+                dd.data[13] += temp.GetCountry() != "" ? (temp.GetCountry() + ", ") : "";
+                dd.data[13] += temp.GetPostalCode() != "" ? (temp.GetPostalCode() + ", ") : "";
+                dd.data[13] += temp.GetContact() != "" ? temp.GetContact() : "";
+                RemoveSpaces(ref dd.data[13], true, true);
             }
-            if (format == 3) // 
-            {
-            }
-            if (format == 4) // 
-            {
-            }
-            if (format == 5) // 
-            {
-            }
-            return null;
+            return locations;
         }
 
-        private void GetLatLong(location dealer_address)
-            // ??? Get latitude and Longitude from Googlemaps, based on the current address ??????????????????????????????
+        private string getProvince(string province, string country)
         {
+            if ((province == "") || (province.Length > 3))
+                return province;
+
+            switch (province.ToUpper())
+            {
+                    // Australia (has some equal abrev. as Canada, New Zealand and United States)
+                case "ACT":
+                    return ("Australian Capital Territory");
+                case "NSW":
+                    return ("New South Wales");
+                case "NT":
+                    if (country == "Australia")
+                        return ("Northern Territory");
+                    else if (country == "Canada")
+                        return ("Northwest Territories");
+                    else return province;
+                case "QLD":
+                    return ("Queensland");
+                case "SA":
+                    return ("South Australia");
+                case "TAS":
+                    if (country == "Australia")
+                        return ("Tasmania");
+                    else if (country == "New Zealand")
+                        return ("Tasman District");
+                    else return province;
+                case "VIC":
+                    return ("Victoria");
+                case "WA":
+                    if (country == "Australia")
+                        return ("Western Australia");
+                    else if (country == "United States")
+                        return ("Washington");
+                    else return province;
+                         
+                    // Canada
+                case "AB":
+                    return ("Alberta");
+                case "BC":
+                    return ("British Columbia");
+                case "MB":
+                    return ("Manitoba");
+                case "NB":
+                    return ("New Brunswick");
+                case "NL":
+                    return ("Newfoundland and Labrador");
+                case "NS":
+                    return ("Nova Scotia");
+                case "NU":
+                    return ("Nunavut");
+                case "ON":
+                    return ("Ontario");
+                case "PE":
+                    return ("Prince Edward Island");
+                case "QC":
+                    return ("Quebec");
+                case "SK":
+                    return ("Saskatchewan");
+                case "YT":
+                    return ("Yukon");
+
+                    // New Zealand
+                case "AUK":
+                    return ("Auckland");
+                case "BOP":
+                    return ("Bay of Plenty");
+                case "CAN":
+                    return ("Canterbury");
+                case "HKB":
+                    return ("Hawke's Bay");
+                case "MWT":
+                    return ("Manawatu-Wanganui");
+                case "NTL":
+                    return ("Northland");
+                case "OTA":
+                    return ("Otago");
+                case "STL":
+                    return ("Southland");
+                case "TKI":
+                    return ("Taranaki");
+                case "WKO":
+                    return ("Waikato");
+                case "WGN":
+                    return ("Wellington");
+                case "WTC":
+                    return ("West Coast");
+                case "GIS":
+                    return ("Gisborne District");
+                case "MBH":
+                    return ("Marlborough District");
+                case "NSN":
+                    return ("Nelson City");
+                case "CIT":
+                    return ("Chatham Islands Territory");
+
+                    // Unites States
+                case "AL":
+                    return ("Alabama");
+                case "AK":
+                    return ("Alaska");
+                case "AZ":
+                    return ("Arizona");
+                case "AR":
+                    return ("Arkansas");
+                case "CA":
+                    return ("California");
+                case "CO":
+                    return ("Colorado");
+                case "CT":
+                    return ("Connecticut");
+                case "DE":
+                    return ("Delaware");
+                case "FL":
+                    return ("Florida");
+                case "GA":
+                    return ("Georgia");
+                case "HI":
+                    return ("Hawaii");
+                case "ID":
+                    return ("Idaho");
+                case "IL":
+                    return ("Illinois");
+                case "IN":
+                    return ("Indiana");
+                case "IA":
+                    return ("Iowa");
+                case "KS":
+                    return ("Kansas");
+                case "KY":
+                    return ("Kentucky");
+                case "LA":
+                    return ("Louisiana");
+                case "ME":
+                    return ("Maine");
+                case "MD":
+                    return ("Maryland");
+                case "MA":
+                    return ("Massachusetts");
+                case "MI":
+                    return ("Michigan");
+                case "MN":
+                    return ("Minnesota");
+                case "MS":
+                    return ("Mississipi");
+                case "MO":
+                    return ("Missouri");
+                case "MT":
+                    return ("Montana");
+                case "NE":
+                    return ("Nebraska");
+                case "NV":
+                    return ("Nevada");
+                case "NH":
+                    return ("New Hampshire");
+                case "NJ":
+                    return ("New Jersey");
+                case "NM":
+                    return ("New Mexico");
+                case "NY":
+                    return ("New York");
+                case "NC":
+                    return ("North Carolina");
+                case "ND":
+                    return ("North Dakota");
+                case "OH":
+                    return ("Ohio");
+                case "OK":
+                    return ("Oklahoma");
+                case "OR":
+                    return ("Oregon");
+                case "PA":
+                    return ("Pennsylvania");
+                case "RI":
+                    return ("Rhode Island");
+                case "SC":
+                    return ("South Carolina");
+                case "SD":
+                    return ("South Dakota");
+                case "TN":
+                    return ("Tennessee");
+                case "TX":
+                    return ("Texas");
+                case "UT":
+                    return ("Utah");
+                case "VT":
+                    return ("Vermont");
+                case "VA":
+                    return ("Virginia");
+                case "WV":
+                    return ("West Virginia");
+                case "WI":
+                    return ("Wisconsin");
+                case "WY":
+                    return ("Wyoming");
+                case "DC":
+                    return ("District of Columbia");
+                case "AS":
+                    return ("American Samoa");
+                case "GU":
+                    return ("Guam");
+                case "MP":
+                    return ("Northern Mariana Islands");
+                case "PR":
+                    return ("Puerto Rico");
+                case "UM":
+                    return (" United States Minor Outlying Islands");
+                case "VI":
+                    return ("Virgin Islands, U.S.");
+                case "":
+                    return ("");
+                default:
+                    return province;
+            }
+        }
+
+        private void GetLatLong(location dealer_address, Tags dd)
+            // ??? Get latitude and Longitude from Googlemaps, based on the current address, and store them into DealerAddress fields AND dd ??????????????????????????????
+        {
+            string comma = "";
+            string address;
+            if (dealer_address.GetStreetAddress() != "")
+                comma = ", ";
+            address= dealer_address.GetStreetAddress();
+            if (dealer_address.GetCity() != "")
+            {
+                address = address + comma + dealer_address.GetCity();
+                comma = ", ";
+            }
+            if (dealer_address.GetProvince() != "")
+            {
+                address = address + comma + dealer_address.GetProvince();
+                comma = ", ";
+            }
+            if (dealer_address.GetCountry() != "")
+            {
+                address = address == "" ? dealer_address.GetCountry() : address + ", " + dealer_address.GetCountry();
+                comma = ", ";
+            }
+            if (dealer_address.GetPostalCode() != "")
+            {
+                address = address + comma + dealer_address.GetPostalCode();
+            }
+
+            dd.data[11] = "";
+            dd.data[12] = "";
+
+            if (address != "")
+            {
+                if (address[0] == '#')
+                    address = address.Remove(0, 1);
+                if (address.Contains(" Blvd"))
+                    address = address.Replace(" Blvd", " Boulevard");
+
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://maps.googleapis.com/maps/api/geocode/xml?address=" + address + "&sensor=false");
+                request.Accept = "Accept: text/html,application/xhtml+xml,application/xml";
+                XmlDocument strData = new XmlDocument();
+                try
+                {
+                    HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                    System.IO.Stream stream = response.GetResponseStream();
+                    System.Text.Encoding ec = System.Text.Encoding.GetEncoding("utf-8");
+                    System.IO.StreamReader reader = new System.IO.StreamReader(stream, ec);
+                    strData.LoadXml(reader.ReadToEnd());
+                    reader.Close();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("ERROR: Exception reading from GoogleMapsAPI ");
+                    AtTheEnd = AtTheEnd + "ERROR: Exception reading from GoogleMapsAPI. Address: " + address + " Dealsite: " + dd.data[5] + "\n";
+                    return;
+                }
+
+                string st = strData.SelectSingleNode("/GeocodeResponse/status").InnerXml.ToString();
+                if (st == "OK")
+                {
+                    dd.data[11] = strData.SelectSingleNode("/GeocodeResponse/result/geometry/location/lat").InnerXml.ToString();
+                    dd.data[12] = strData.SelectSingleNode("/GeocodeResponse/result/geometry/location/lng").InnerXml.ToString();
+                    RoundLatLong(ref dd.data[11], ref dd.data[12], ref AtTheEnd, dd.data[5]);
+                }
+                else 
+                {
+                    Console.WriteLine("WARNING: Couldn't get Lat/Lng from GoogleMapsAPI for the address: " + address + " Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "WARNING: Couldn't get Lat/Lng from GoogleMapsAPI for the address: " + address + " Dealsite: " + dd.data[5] + "\n";
+                }
+            }
+            // apenas para nao ficar vazio
+            dealer_address.SetLongitude(dd.data[11]);
+            dealer_address.SetLatitude(dd.data[12]);
         }
 
         private string CreateMapLink(Tags dd)
@@ -2723,12 +4478,14 @@ namespace PlayingWithCsharp
             // based on Latitude and Longitude
             if ((dd.data[11] != "") && (dd.data[12] != ""))
             {
-                dd.data[18] = "http://maps.google.com/maps?q=" + dd.data[11] + ", " + dd.data[12];
+                return("http://maps.google.com/maps?q=" + dd.data[11] + ", " + dd.data[12]);
             }
-            return dd.data[18];
+            else
+                return("");
+  //          return dd.data[18];
         }
 
-        private void DealersPreProcessingData(Tags dd)
+        private void DealersPreProcessingData(Tags dd, List<string> removeText)
         {
             dd.data[8] = dd.data[8].Replace("www.", ""); // let all companie's URL with the same format, i.e., without "www." and the last "/"
             if ((dd.data[8].Length >= 1) && (dd.data[8][dd.data[8].Length - 1] == '/'))
@@ -2744,22 +4501,59 @@ namespace PlayingWithCsharp
             if ((dd.data[18].Length == 30) && (dd.data[18] == "http://maps.google.com/maps?q="))
                 dd.data[18] = "";
 
-            if (dd.data[17].ToLower() == "usa")
+            if ((dd.data[17].ToLower() == "usa") || (dd.data[17].ToLower() == "états-unis") || (dd.data[17].ToLower() == "stany zjednoczone") || (dd.data[17].ToLower() == "verenigde staten"))
                 dd.data[17] = "United States";
+            if (dd.data[17].ToLower() == "francja")
+                dd.data[17] = "France";
+            if ((dd.data[17].ToLower() == "holandia") || (dd.data[17].ToLower() == "Pays-Bas"))
+                dd.data[17] = "Netherlands";
+            if ((dd.data[17].ToLower() == "irlande") || (dd.data[17].ToLower() == "irlandia"))
+                dd.data[17] = "Ireland";
+            if (dd.data[17].ToLower() == "kanada")
+                dd.data[17] = "Canada";
+            if ((dd.data[17].ToLower() == "nouvelle-zélande") || (dd.data[17].ToLower() == "nowa zelandia"))
+                dd.data[17] = "New Zealand";
+            if ((dd.data[17].ToLower() == "royaume-uni") || (dd.data[17].ToLower() == "wielka brytania"))
+                dd.data[17] = "United Kingdom";
             
             Boolean phone = false;
             for (int i = 13; i <= 43; i++)
             {
                 if (i == 16)
                     i = 43;
-                string aux1 = dd.data[i].ToLower();
-                string aux = aux1;
-                if (aux != "")
+                dd.data[i] = RemoveWebLinks(dd.data[i]);
+                string aux = dd.data[i].ToLower();
+                string aux1 = dd.data[i];
+                int first;
+//                string aux1 = aux;
+                if (aux1 != "")
                 {
                     if (i != 13)
-                        aux = ExtractPhone(aux, dd, ref phone);
-                    aux = RemoveWebLinks(aux);
-                    aux = aux.Replace("include photo", "");
+                        aux1 = ExtractPhone(aux1, dd, ref phone);
+
+                    aux = aux.Replace("call ", " ");
+                    aux1 = aux1.Replace("call ", " ");
+                    aux1 = aux1.Replace("Call ", " ");
+                    aux = aux.Replace("call\n", "\n");
+                    aux1 = aux1.Replace("call\n", "\n");
+                    aux1 = aux1.Replace("Call\n", "\n");
+
+                    for (int q = 0; q < removeText.Count; q++)
+                    {
+                        do
+                        {
+                            string text = removeText[q];
+                            first = aux.IndexOf(text);
+                            if (first != -1)
+                            {
+                                aux = aux.Remove(first, text.Length);
+                                aux1 = aux1.Remove(first, text.Length);
+                                first = aux.IndexOf(text);
+                            }
+                        } while (first != -1);
+                    }
+
+/*                    aux = aux.Replace("include photo", "");
                     aux = aux.Replace("(map)", "");
                     aux = aux.Replace("(carte)", "");
                     aux = aux.Replace("phone and contact with:", "");
@@ -2831,12 +4625,15 @@ namespace PlayingWithCsharp
                     aux = aux.Replace("multiple locations", "");
                     aux = aux.Replace("valid at", "");
                     aux = aux.Replace("view locations", "");
-                    aux = aux.Replace("mail out", "");
-                    if (aux1 != aux)
+                    aux = aux.Replace("mail out", "");*/
+                    if (aux1 != dd.data[i])
                     {
-                        RemoveSpaces(ref aux, true);
-                        if (aux == "or") aux = "";
-                        dd.data[i] = aux;
+                        if (i == 13)
+                            RemoveSpaces(ref aux1, true, false);
+                        else
+                            RemoveSpaces(ref aux1, true, true);
+                        if (aux1 == "or") aux = "";
+                        dd.data[i] = aux1;
                     }
                 }
             }
@@ -2898,8 +4695,8 @@ namespace PlayingWithCsharp
                 {
                     dd.data[15] = dd.data[15].Remove(pos);
                     dd.data[43] = dd.data[43].Remove(0, pos);
-                    RemoveSpaces(ref dd.data[15], true);
-                    RemoveSpaces(ref dd.data[43], true);
+                    RemoveSpaces(ref dd.data[15], true, true);
+                    RemoveSpaces(ref dd.data[43], true, true);
                 }
             }
             //  if Latitude contains both Lat and Longitude data, Longitude field is empty
@@ -2924,7 +4721,50 @@ namespace PlayingWithCsharp
                     dd.data[18] = "";
             }
 
-            if ((dd.data[11] != "") && (dd.data[12] != "") && ((Convert.ToDouble(dd.data[11]) == 0) && (Convert.ToDouble(dd.data[12]) == 0)))
+            double lat = -1, longit = -1;
+            if (dd.data[11] != "")
+            {
+                try
+                {
+                    lat = Convert.ToDouble(dd.data[11]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert '" + dd.data[11] + "' to a Double (Latitude). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert '" + dd.data[11] + "' to a Double (Latitude). Dealsite: " + dd.data[5] + "\n";
+                    dd.data[11] = "";
+                    lat = 0;
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'" + dd.data[11] + "' is outside the range of a Double (Latitude). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "'" + dd.data[11] + "' is outside the range of a Double (Latitude). Dealsite: " + dd.data[5] + "\n";
+                    dd.data[11] = "";
+                    lat = 0;
+                }
+            }
+            if (dd.data[12] != "")
+            {
+                try
+                {
+                    longit = Convert.ToDouble(dd.data[12]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert '" + dd.data[12] + "' to a Double (Longitude). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert '" + dd.data[12] + "' to a Double (Longitude). Dealsite: " + dd.data[5] + "\n";
+                    dd.data[12] = "";
+                    longit = 0;
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'" + dd.data[12] + "' is outside the range of a Double (Longitude). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "'" + dd.data[12] + " is outside the range of a Double (Longitude). Dealsite: " + dd.data[5] + "\n";
+                    dd.data[12] = "";
+                    longit = 0;
+                }
+            }
+            if ((lat == 0) && (longit == 0))
             {
                 dd.data[11] = "";
                 dd.data[12] = "";
@@ -2946,7 +4786,7 @@ namespace PlayingWithCsharp
                 }
             }
 
-            RoundLatLong(ref dd.data[11], ref dd.data[12], ref AtTheEnd);
+   //         RoundLatLong(ref dd.data[11], ref dd.data[12], ref AtTheEnd);
 
         }
 
@@ -2973,9 +4813,87 @@ namespace PlayingWithCsharp
             int i = dd.data[31].IndexOf('+');
             if ((i != -1) && (i + 1 < dd.data[31].Length))
             {
-                int n1 = Convert.ToInt32(dd.data[31].Substring(0, i));
-                int n2 = Convert.ToInt32(dd.data[31].Substring(i+1, dd.data[31].Length - (i + 1)));
-                dd.data[31] = (n1 + n2).ToString();
+                int n1, n2;
+                try
+                {
+                    n1 = Convert.ToInt32(dd.data[31].Substring(0, i));
+                    n2 = Convert.ToInt32(dd.data[31].Substring(i + 1, dd.data[31].Length - (i + 1)));
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to extract two Int numbers (MinNumberVouchers) from '" + dd.data[31] + ". Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to extract two Int numbers (MinNumberVouchers) from '" + dd.data[31] + ".: " + dd.data[5] + "\n";
+                    n1 = -1;
+                    n2 = -1;
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("One of those numbers'" + dd.data[31] + "' is outside the range of an Int (MinNumberVouchers).: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "One of those numbers'" + dd.data[31] + " is outside the range of an Int (MinNumberVouchers).: " + dd.data[5] + "\n";
+                    n1 = -1;
+                    n2 = -1;
+                }
+                dd.data[31] = n1 == -1 ? "" : (n1 + n2).ToString();
+            }
+
+            if (dd.data[31] != "")
+            {
+                try
+                {
+                    Convert.ToInt32(dd.data[31]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert to Int (MinNumberVouchers) from '" + dd.data[31] + ". Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert to Int (MinNumberVouchers) from '" + dd.data[31] + ".: " + dd.data[5] + "\n";
+                    dd.data[31] = "";
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("One of those numbers'" + dd.data[31] + "' is outside the range of an Int (MinNumberVouchers).: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "One of those numbers'" + dd.data[31] + " is outside the range of an Int (MinNumberVouchers).: " + dd.data[5] + "\n";
+                    dd.data[31] = "";
+                }
+            }
+
+            if (dd.data[30] != "")
+            {
+                try
+                {
+                    Convert.ToInt32(dd.data[30]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert to Int (MinNumberVouchers) from '" + dd.data[30] + ". Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert to Int (MinNumberVouchers) from '" + dd.data[30] + ".: " + dd.data[5] + "\n";
+                    dd.data[30] = "";
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("One of those numbers'" + dd.data[30] + "' is outside the range of an Int (MinNumberVouchers).: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "One of those numbers'" + dd.data[30] + " is outside the range of an Int (MinNumberVouchers).: " + dd.data[5] + "\n";
+                    dd.data[30] = "";
+                }
+            }
+
+            if (dd.data[35] != "")
+            {
+                try
+                {
+                    Convert.ToInt32(dd.data[35]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert to Int (MinNumberVouchers) from '" + dd.data[35] + ". Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert to Int (MinNumberVouchers) from '" + dd.data[35] + ".: " + dd.data[5] + "\n";
+                    dd.data[35] = "";
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("One of those numbers'" + dd.data[35] + "' is outside the range of an Int (MinNumberVouchers).: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "One of those numbers'" + dd.data[35] + " is outside the range of an Int (MinNumberVouchers).: " + dd.data[5] + "\n";
+                    dd.data[35] = "";
+                }
             }
         }
 
@@ -2996,13 +4914,84 @@ namespace PlayingWithCsharp
                 dd.data[29] = "";
                 return;
             }
-            int format = Convert.ToInt16(dd.data[29].Substring(1, i - 1));
+            int format = 0;
+            try
+            {
+                format = Convert.ToInt16(dd.data[29].Substring(1, i - 1));
+            }
+            catch (FormatException)
+            {
+                Console.WriteLine("ExpiryTime DESCRIPTION format is not a number.'" + dd.data[29].Substring(1, i - 1) + " Dealsite: " + dd.data[49] + "\n");
+                AtTheEnd = AtTheEnd + "ExpiryTime DESCRIPTION format is not a number.'" + dd.data[29].Substring(1, i - 1) + " Dealsite: " + dd.data[49] + "\n";
+                dd.data[28] = "";
+                dd.data[29] = "";
+                return;
+            }
+            catch (OverflowException)
+            {
+                Console.WriteLine("One of those format numbers'" + dd.data[31] + "' is outside the range of a Double (ExpiryTime).: " + " Dealsite: " + dd.data[49] + "\n");
+                AtTheEnd = AtTheEnd + "One of those format numbers'" + dd.data[31] + " is outside the range of a Double (ExpiryTime).: " + " Dealsite: " + dd.data[49] + "\n";
+                dd.data[28] = "";
+                dd.data[29] = "";
+                return;
+            }
+
             dd.data[29] = dd.data[29].Remove(0, i + 1);
 
             if (format == 1) // represents time by seconds (elapsed and total)
             {
-                TimeSpan total = TimeSpan.FromSeconds(Convert.ToDouble(dd.data[26]));
-                TimeSpan elapsed = TimeSpan.FromSeconds(Convert.ToDouble(dd.data[27]));
+                double aux;
+                try
+                {
+                    aux = Convert.ToDouble(dd.data[26]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert " + dd.data[26] + " to Double (SecondsTotal). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert " + dd.data[26] + " to Double (SecondsTotal). Dealsite: " + dd.data[5] + "\n";
+                    aux = -1;
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'" + dd.data[26] + "' is outside the range of a Double (SecondsTotal). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "'" + dd.data[26] + " is outside the range of a Double (SecondsTotal). Dealsite: " + dd.data[5] + "\n";
+                    aux = -1;
+                }
+                if (aux == -1)
+                {
+                    dd.data[26] = "";
+                    dd.data[27] = "";
+                    dd.data[28] = "";
+                    dd.data[29] = "";
+                    return;
+                }
+                TimeSpan total = TimeSpan.FromSeconds(aux);
+
+                try
+                {
+                    aux = Convert.ToDouble(dd.data[27]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert " + dd.data[27] + " to Double (SecondsElapsed). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert " + dd.data[27] + " to Double (SecondsElapsed). Dealsite: " + dd.data[5] + "\n";
+                    aux = -1;
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'" + dd.data[27] + "' is outside the range of a Double (SecondsElapsed). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "'" + dd.data[27] + " is outside the range of a Double (SecondsElapsed). Dealsite: " + dd.data[5] + "\n";
+                    aux = -1;
+                }
+                if (aux == -1)
+                {
+                    dd.data[27] = "";
+                    dd.data[28] = "";
+                    dd.data[29] = "";
+                    return;
+                }
+                TimeSpan elapsed = TimeSpan.FromSeconds(aux);
+
                 DateTimeOffset extracted = DateTimeOffset.Parse(dd.data[1]);
                 dd.data[28] = (total - elapsed).ToString();
                 dd.data[29] = (extracted.Add(total - elapsed)).ToString();
@@ -3012,6 +5001,8 @@ namespace PlayingWithCsharp
             {
                 int hr, min, sec, day;
                 string remaining = dd.data[28];
+                dd.data[26] = "";
+                dd.data[27] = "";
                 TimeSpan time;
                 DateTimeOffset extracted = DateTimeOffset.Parse(dd.data[1]);
                 DateTimeOffset tomorrow = extracted.Date.AddDays(1);
@@ -3044,9 +5035,30 @@ namespace PlayingWithCsharp
                 {
                     if (i > 0)
                     {
-                        day = Convert.ToInt32(remaining.Substring(0, i));
+                        try
+                        {
+                            day = Convert.ToInt32(remaining.Substring(0, i));
+                        }
+                        catch (FormatException)
+                        {
+                            Console.WriteLine("Unable to convert " + remaining + " to Int (Day - RemainingTime). Dealsite: " + dd.data[5] + "\n");
+                            AtTheEnd = AtTheEnd + "Unable to convert " + remaining + " to Int (Day - RemainingTime). Dealsite: " + dd.data[5] + "\n";
+                            day = -1;
+                        }
+                        catch (OverflowException)
+                        {
+                            Console.WriteLine("'" + remaining + "' is outside the range of a Int (Day - RemainingTime). Dealsite: " + dd.data[5] + "\n");
+                            AtTheEnd = AtTheEnd + "'" + remaining + " is outside the range of a Int (Day - RemainingTime). Dealsite: " + dd.data[5] + "\n";
+                            day = -1;
+                        }
+                        if (day == -1)
+                        {
+                            dd.data[28] = "";
+                            dd.data[29] = "";
+                            return;
+                        }
                     }
-                    remaining = remaining.Remove(0, i + 1);
+                    remaining = remaining!=""?remaining.Remove(0, i + 1):"";
                 }
                 if (remaining == "")
                 {
@@ -3062,7 +5074,30 @@ namespace PlayingWithCsharp
                     if ((i + 1) < remaining.Length)
                     {
                         if (remaining[i + 1] != '-')
-                            sec = Convert.ToInt32(remaining.Substring(i + 1, remaining.Length - i - 1));
+                        {
+                            try
+                            {
+                                sec = Convert.ToInt32(remaining.Substring(i + 1, remaining.Length - i - 1));
+                            }
+                            catch (FormatException)
+                            {
+                                Console.WriteLine("Unable to convert " + remaining + " to Int (Seconds - RemainingTime). Dealsite: " + dd.data[5] + "\n");
+                                AtTheEnd = AtTheEnd + "Unable to convert " + remaining + " to Int (Seconds - RemainingTime). Dealsite: " + dd.data[5] + "\n";
+                                sec = -1;
+                            }
+                            catch (OverflowException)
+                            {
+                                Console.WriteLine("'" + remaining + "' is outside the range of a Int (Seconds - RemainingTime). Dealsite: " + dd.data[5] + "\n");
+                                AtTheEnd = AtTheEnd + "'" + remaining + " is outside the range of a Int (Seconds - RemainingTime). Dealsite: " + dd.data[5] + "\n";
+                                sec = -1;
+                            }
+                            if (sec == -1)
+                            {
+                                dd.data[28] = "";
+                                dd.data[29] = "";
+                                return;
+                            }
+                        }
                         else
                         {
                             if (dd.data[34] == "true")
@@ -3077,7 +5112,28 @@ namespace PlayingWithCsharp
                 {
                     if ((remaining.Length > 0) && (day == 0))
                     {
-                        day = Convert.ToInt32(remaining);
+                        try
+                        {
+                            day = Convert.ToInt32(remaining);
+                        }
+                        catch (FormatException)
+                        {
+                            Console.WriteLine("Unable to convert " + remaining + " to Int (Day - RemainingTime). Dealsite: " + dd.data[5] + "\n");
+                            AtTheEnd = AtTheEnd + "Unable to convert " + remaining + " to Int (Day - RemainingTime). Dealsite: " + dd.data[5] + "\n";
+                            day = -1;
+                        }
+                        catch (OverflowException)
+                        {
+                            Console.WriteLine("'" + remaining + "' is outside the range of a Int (Day - RemainingTime). Dealsite: " + dd.data[5] + "\n");
+                            AtTheEnd = AtTheEnd + "'" + remaining + " is outside the range of a Int (Day - RemainingTime). Dealsite: " + dd.data[5] + "\n";
+                            day = -1;
+                        }
+                        if (sec == -1)
+                        {
+                            dd.data[28] = "";
+                            dd.data[29] = "";
+                            return;
+                        }
                         remaining = "";
                     }
                 }
@@ -3087,7 +5143,30 @@ namespace PlayingWithCsharp
                     if ((i + 1) < remaining.Length)
                     {
                         if (remaining[i + 1] != '-')
-                            min = Convert.ToInt32(remaining.Substring(i + 1, remaining.Length - i - 1));
+                        {
+                            try
+                            {
+                                min = Convert.ToInt32(remaining.Substring(i + 1, remaining.Length - i - 1));
+                            }
+                            catch (FormatException)
+                            {
+                                Console.WriteLine("Unable to convert " + remaining + " to Int (Minutes - RemainingTime). Dealsite: " + dd.data[5] + "\n");
+                                AtTheEnd = AtTheEnd + "Unable to convert " + remaining + " to Int (Minutes - RemainingTime). Dealsite: " + dd.data[5] + "\n";
+                                min = -1;
+                            }
+                            catch (OverflowException)
+                            {
+                                Console.WriteLine("'" + remaining + "' is outside the range of a Int (Minutes - RemainingTime). Dealsite: " + dd.data[5] + "\n");
+                                AtTheEnd = AtTheEnd + "'" + remaining + " is outside the range of a Int (Minutes - RemainingTime). Dealsite: " + dd.data[5] + "\n";
+                                min = -1;
+                            }
+                            if (min == -1)
+                            {
+                                dd.data[28] = "";
+                                dd.data[29] = "";
+                                return;
+                            }
+                        }
                         remaining = remaining.Remove(i, remaining.Length - i);
                     }
                     else
@@ -3096,7 +5175,28 @@ namespace PlayingWithCsharp
                 remaining = remaining.Replace("-","");
                 if (remaining.Length > 0)
                 {
-                    hr = Convert.ToInt32(remaining);
+                    try
+                    {
+                        hr = Convert.ToInt32(remaining);
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("Unable to convert " + remaining + " to Int (Hours - RemainingTime). Dealsite: " + dd.data[5] + "\n");
+                        AtTheEnd = AtTheEnd + "Unable to convert " + remaining + " to Int (Hours - RemainingTime). Dealsite: " + dd.data[5] + "\n";
+                        hr = -1;
+                    }
+                    catch (OverflowException)
+                    {
+                        Console.WriteLine("'" + remaining + "' is outside the range of a Int (Hours - RemainingTime). Dealsite: " + dd.data[5] + "\n");
+                        AtTheEnd = AtTheEnd + "'" + remaining + " is outside the range of a Int (Hours - RemainingTime). Dealsite: " + dd.data[5] + "\n";
+                        hr = -1;
+                    }
+                    if (hr == -1)
+                    {
+                        dd.data[28] = "";
+                        dd.data[29] = "";
+                        return;
+                    }
                 }
                 time = new TimeSpan(day, hr, min, sec);
                 dd.data[28] = time.ToString();
@@ -3105,9 +5205,43 @@ namespace PlayingWithCsharp
             }
             if (format == 3)
             {
+                DateTimeOffset Exp, Rem;
+                dd.data[26] = "";
+                dd.data[27] = "";
                 dd.data[29] = dd.data[29].ToUpper();
                 dd.data[29] = dd.data[29].Replace("GMT","");
-                dd.data[28] = (DateTimeOffset.Parse(dd.data[29]) - DateTimeOffset.Parse(dd.data[1])).ToString();
+
+                try
+                {
+                    Exp = DateTimeOffset.Parse(dd.data[29]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert " + dd.data[29] + " to DateTimeOffset (ExpiryTime). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert " + dd.data[29] + " to DateTimeOffset (ExpiryTime). Dealsite: " + dd.data[5] + "\n";
+                    dd.data[28] = "";
+                    dd.data[29] = "";
+                    return;
+                }
+                catch (ArgumentNullException)
+                {
+                    Console.WriteLine("(ExpiryTime) is null. Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "(ExpiryTime) is null. Dealsite: " + dd.data[5] + "\n";
+                    dd.data[28] = "";
+                    dd.data[29] = "";
+                    return;
+                }
+                catch (ArgumentException)
+                {
+                    Console.WriteLine("'" + dd.data[29] + "' offset is greater than 14 hours (ExpiryTime). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "'" + dd.data[29] + "' offset is greater than 14 hours (ExpiryTime). Dealsite: " + dd.data[5] + "\n";
+                    dd.data[28] = "";
+                    dd.data[29] = "";
+                    return;
+                }
+
+                Rem = DateTimeOffset.Parse(dd.data[1]);
+                dd.data[28] = (Exp - Rem).ToString();
                 return;
             }
             return;
@@ -3148,87 +5282,185 @@ namespace PlayingWithCsharp
             }
 
             if (dd.data[20] != "")
-                regular = Convert.ToDouble(dd.data[20]);
+            {
+                try
+                {
+                    regular = Convert.ToDouble(dd.data[20]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert '" + dd.data[20] + "' to Double (Regular Price). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert '" + dd.data[20] + "' to Double (Regular Price). Dealsite: " + dd.data[5] + "\n";
+                    regular = -1;
+                    dd.data[20] = "";
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'" + dd.data[20] + "' is outside the range of a Double (Regular Price). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "'" + dd.data[20] + "' is outside the range of a Double (Regular Price). Dealsite: " + dd.data[5] + "\n";
+                    regular = -1;
+                    dd.data[20] = "";
+                }
+            }
             else
-                regular = 0;
+                regular = -1;
 
             if (dd.data[21] != "")
-                our = Convert.ToDouble(dd.data[21]);
+            {
+                try
+                {
+                    our = Convert.ToDouble(dd.data[21]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert '" + dd.data[21] + "' to Double (Our Price). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert '" + dd.data[21] + "' to Double (Our Price). Dealsite: " + dd.data[5] + "\n";
+                    our = -1;
+                    dd.data[21] = "";
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'" + dd.data[21] + "' is outside the range of a Double (Our Price). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "'" + dd.data[21] + "' is outside the range of a Double (Our Price). Dealsite: " + dd.data[5] + "\n";
+                    our = -1;
+                    dd.data[21] = "";
+                }
+            }
             else
-                our = 0;
+                our = -1;
 
             if (dd.data[22] != "")
-                save = Convert.ToDouble(dd.data[22]);
+            {
+                try
+                {
+                    save = Convert.ToDouble(dd.data[22]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert '" + dd.data[22] + "' to Double (Save). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert '" + dd.data[22] + "' to Double (Save). Dealsite: " + dd.data[5] + "\n";
+                    save = -1;
+                    dd.data[22] = "";
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'" + dd.data[22] + "' is outside the range of a Double (Save). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "'" + dd.data[22] + "' is outside the range of a Double (Save). Dealsite: " + dd.data[5] + "\n";
+                    save = -1;
+                    dd.data[22] = "";
+                }
+            }
             else
-                save = 0;
+                save = -1;
 
             if (dd.data[23] != "")
             {
                 dd.data[23] = dd.data[23].Replace("%", "");
-                disc = Convert.ToDouble(dd.data[23]);
+                try
+                {
+                    disc = Convert.ToDouble(dd.data[23]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert '" + dd.data[23] + "' to Double (Discount). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert '" + dd.data[23] + "' to Double (Discount). Dealsite: " + dd.data[5] + "\n";
+                    disc = -1;
+                    dd.data[23] = "";
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'" + dd.data[23] + "' is outside the range of a Double (Discount). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "'" + dd.data[23] + "' is outside the range of a Double (Discount). Dealsite: " + dd.data[5] + "\n";
+                    disc = -1;
+                    dd.data[23] = "";
+                }
             }
             else
-                disc = 0;
+                disc = -1;
 
-            if ((regular == 0) && ((our != 0) && (disc != 0)))
+            if ((regular == -1) && ((our != -1) && (disc != -1)))
             {
-                regular = Math.Round(((our / (100 - disc)) * 100),2);
+                if (our != 0)
+                    regular = Math.Round(((our / (100 - disc)) * 100), 2);
                 dd.data[20] = regular.ToString();
             }
 
-            if ((save == 0) && ((regular != 0) && (our != 0)))
+            if ((save == -1) && ((regular != -1) && (our != -1)))
             {
                 save = regular - our;
                 dd.data[22] = save.ToString();
             }
+
+            if (dd.data[24] != "")
+            {
+                try
+                {
+                    Convert.ToDouble(dd.data[24]);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Unable to convert '" + dd.data[24] + "' to Double (PayOutAmount). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert '" + dd.data[24] + "' to Double (PayOutAmount). Dealsite: " + dd.data[5] + "\n";
+                    dd.data[24] = "";
+                }
+                catch (OverflowException)
+                {
+                    Console.WriteLine("'" + dd.data[24] + "' is outside the range of a Double (PayOutAmount). Dealsite: " + dd.data[5] + "\n");
+                    AtTheEnd = AtTheEnd + "'" + dd.data[24] + "' is outside the range of a Double (PayOutAmount). Dealsite: " + dd.data[5] + "\n";
+                    dd.data[24] = "";
+                }
+            }
         }
 
-        private void RoundLatLong(ref string p, ref string p_2, ref string AtTheEnd)
+        private void RoundLatLong(ref string p, ref string p_2, ref string AtTheEnd, string site)
         {
             // Round Latitude to 4 decimals
             if (p != "")
             {
-                string s = p.ToString();
                 double lat = 0;
+                
                 try
                 {
-                    lat = Convert.ToDouble(s);
+                    lat = Convert.ToDouble(p);
                 }
                 catch (FormatException)
                 {
-                    Console.WriteLine("Unable to convert '{0}' to a Double.", s);
-                    AtTheEnd = AtTheEnd + "Unable to convert " + s + " to a Double.";
+                    Console.WriteLine("Unable to convert '" + p + "' to a Double (Latitude). Dealsite: " + site + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert '" + p + "' to a Double (Latitude). Dealsite: " + site + "\n";
+                    lat = 0;
                 }
                 catch (OverflowException)
                 {
-                    Console.WriteLine("'{0}' is outside the range of a Double.", s);
-                    AtTheEnd = AtTheEnd + s + " is outside the range of a Double.";
+                    Console.WriteLine("'" + p + "' is outside the range of a Double (Latitude). Dealsite: " + site + "\n");
+                    AtTheEnd = AtTheEnd + "'" + p + "' is outside the range of a Double (Latitude). Dealsite: " + site + "\n";
+                    lat = 0;
                 }
                 lat = Math.Round(lat, 4);
-                p = lat.ToString();
+                p = lat == 0 ? "" : lat.ToString();
             }
 
             // Round Longitude to 4 decimals
             if (p_2 != "")
             {
-                string s = p_2.ToString();
                 double longit = 0;
                 try
                 {
-                    longit = Convert.ToDouble(s);
+                    longit = Convert.ToDouble(p_2);
                 }
                 catch (FormatException)
                 {
-                    Console.WriteLine("Unable to convert '{0}' to a Double.", s);
-                    AtTheEnd = AtTheEnd + "Unable to convert " + s + " to a Double.";
+                    Console.WriteLine("Unable to convert '" + p_2 + "' to a Double (Longitude). Dealsite: " + site + "\n");
+                    AtTheEnd = AtTheEnd + "Unable to convert '" + p_2 + "' to a Double (Longitude). Dealsite: " + site + "\n";
+                    longit = 0;
                 }
                 catch (OverflowException)
                 {
-                    Console.WriteLine("'{0}' is outside the range of a Double.", s);
-                    AtTheEnd = AtTheEnd + s + " is outside the range of a Double.";
+                    Console.WriteLine("'" + p_2 + "' is outside the range of a Double. Dealsite: " + site + "\n");
+                    AtTheEnd = AtTheEnd + "'" + p_2 + "' is outside the range of a Double. Dealsite: " + site + "\n";
+                    longit = 0;
                 }
                 longit = Math.Round(longit, 4);
-                p_2 = longit.ToString();
+                p_2 = longit == 0 ? "" : longit.ToString();
             }
 
         }
@@ -3261,12 +5493,27 @@ namespace PlayingWithCsharp
             while (b != -1)
             {
                 e = aux.IndexOf(" ", b);
+                int e1 = aux.IndexOf(';', b);
+                if ((e == -1) || ((e1 != -1) && (e1 < e)))
+                    e = e1;
                 if (e == -1)
                     e = aux.Length - 1;
-                b = aux.LastIndexOf(" ", b);
-                if (b == -1)
-                    b = 0;
+                int b1 = aux.LastIndexOf(" ", b);
+                if (b1 == -1)
+                    b1 = 0;
+                int b2 = aux.LastIndexOf(';', b);
+                if (b2 == -1)
+                    b2 = 0;
+                if (b2 > b1)
+                    b1 = b2;
+                b2 = aux.LastIndexOf('#', b);
+                if (b2 == -1)
+                    b2 = 0;
+                else
+                    b2 += 1;
+                b = b2 > b1 ? b2 : b1;
                 temp = aux.Substring(b, e - b + 1);
+                RemoveSpaces(ref temp, true, true);
                 if (temp.IndexOf("(") == -1)
                 {
                     if (contact.IndexOf(temp) == -1)
@@ -3279,7 +5526,7 @@ namespace PlayingWithCsharp
                     e = 0;
                 }
                 aux = aux.Replace(temp, "");
-                RemoveSpaces(ref aux, true);
+                RemoveSpaces(ref aux, true, false);
                 b = aux.IndexOf("@", e);
             }
         }
@@ -3290,22 +5537,28 @@ namespace PlayingWithCsharp
             while (b != -1)
             {
                 int e = aux.IndexOf(" ", b);
+                int e1 = aux.IndexOf(';', b);
+                if ((e == -1) || ((e1 != -1) && (e1 < e)))
+                    e = e1;
                 if (e != -1)
                     aux = aux.Replace(aux.Substring(b, e - b + 1),"");
                 else
                     aux = aux.Replace(aux.Substring(b, aux.Length - b),"");
-                RemoveSpaces(ref aux, true);
+                RemoveSpaces(ref aux, true, false);
                 b = aux.IndexOf("http://");
             }
             b = aux.IndexOf("www.");
             while (b != -1)
             {
                 int e = aux.IndexOf(" ", b);
+                int e1 = aux.IndexOf(';', b);
+                if ((e == -1) || ((e1 != -1) && (e1 < e)))
+                    e = e1;
                 if (e != -1)
                     aux = aux.Replace(aux.Substring(b, e - b + 1),"");
                 else
                     aux = aux.Replace(aux.Substring(b, aux.Length - b),"");
-                RemoveSpaces(ref aux, true);
+                RemoveSpaces(ref aux, true, false);
                 b = aux.IndexOf("www.");
             }
             b = aux.IndexOf(".com");
@@ -3314,17 +5567,33 @@ namespace PlayingWithCsharp
             while (b != -1)
             {
                 int e = b;
-                b = aux.LastIndexOf(" ",b);
-                if (b == -1)
-                    b = 0;
+
+                int b1 = aux.LastIndexOf(" ", b);
+                if (b1 == -1)
+                    b1 = 0;
+                int b2 = aux.LastIndexOf(';', b);
+                if (b2 == -1)
+                    b2 = 0;
+                if (b2 > b1)
+                    b1 = b2;
+                b2 = aux.LastIndexOf('#', b);
+                if (b2 == -1)
+                    b2 = 0;
+                else
+                    b2 += 1;
+                b = b2 > b1 ? b2 : b1;
+
                 e = aux.IndexOf(" ", e);
+                int e1 = aux.IndexOf(';', b);
+                if ((e == -1) || ((e1 != -1) && (e1 < e)))
+                    e = e1;
                 if (e == -1)
                     e = aux.Length - 1;
                 int a = aux.IndexOf("@", b);
                 if ((a == -1) || (a >= e)) // it is not an email address
                 {
                     aux = aux.Replace(aux.Substring(b, e - b + 1), "");
-                    RemoveSpaces(ref aux, true);
+                    RemoveSpaces(ref aux, true, false);
                     b = aux.IndexOf(".com");
                     if (b == -1)
                         b = aux.IndexOf(".ca");
@@ -3339,11 +5608,13 @@ namespace PlayingWithCsharp
             return aux;
         }
 
-        private string ExtractPhone(string aux, Tags dd, ref Boolean phone) // phone is only true if previous column indicates that the current one probably has a phone number
+        private string ExtractPhone(string original, Tags dd, ref Boolean phone) // phone is only true if previous column indicates that the current one probably has a phone number
         {
             int b;
+            string aux = original.ToLower();
             if (phone == false)
             {
+                original = original.Replace(" at ", " ");
                 aux = aux.Replace(" at ", " ");
                 b = aux.IndexOf("phone");
                 if (b == -1)
@@ -3351,7 +5622,7 @@ namespace PlayingWithCsharp
                 if (b != -1)
                 {
                     if ((b - 1 >= 0) && (((aux[b - 1] >= 'a') && (aux[b - 1] <= 'z')) || ((aux[b - 1] >= 'A') && (aux[b - 1] <= 'Z'))))
-                        return aux;
+                        return original;
                     b += 4; // lenght of word call
                     if (aux[b] == 'e')
                         b += 1; // the word was phone and not call
@@ -3365,6 +5636,7 @@ namespace PlayingWithCsharp
                 if ((b < aux.Length) && ((aux[b] == '(') || ((aux[b] >= '0') && (aux[b] <= '9'))))
                 {
                     string phoneNumber = "";
+ //                   string phoneNumberAux = "";
                     /*                    int e = b;
                                         do
                                         {
@@ -3385,12 +5657,20 @@ namespace PlayingWithCsharp
                                         else */
                     int e = aux.IndexOf('|', b);
                     if (e == -1)
-                        phoneNumber = aux.Substring(b, aux.Length - b);
+                    {
+                        phoneNumber = original.Substring(b, original.Length - b);
+ //                       phoneNumberAux = aux.Substring(b, aux.Length - b);
+                    }
                     else
-                        phoneNumber = aux.Substring(b, e - b);
+                    {
+                        phoneNumber = original.Substring(b, e - b);
+  //                      phoneNumberAux = aux.Substring(b, e - b);
+                    }
                     dd.data[19] = phoneNumber;
-                    aux = aux.Replace(dd.data[19], "");
-                    RemoveSpaces(ref aux, true);
+                    original = original.Replace(phoneNumber, "");
+  //                  aux = aux.Replace(phoneNumberAux, "");
+                    RemoveSpaces(ref original, true, false);
+  //                  RemoveSpaces(ref aux, true, false);
                 }
                 else
                 {
@@ -3398,7 +5678,7 @@ namespace PlayingWithCsharp
                         phone = true; 
                 }
             }
-            return aux;
+            return original;
         }
 
         string getDealerID(string[] p, SqlConnection myConnection2, StreamWriter writer, ref string AtTheEnd, dealer locations)
@@ -3432,11 +5712,32 @@ namespace PlayingWithCsharp
                     if (id > bigger)
                         bigger = id;
 
-                    if ((p[8] == myReader["URL"].ToString()) || ((p[8] == "") && (myReader["URL"] == DBNull.Value)))
+//                    if ((p[8] == myReader["URL"].ToString()) || ((p[8] == "") && (myReader["URL"] == DBNull.Value)))
+//                    {
+//                        count += 1;
+//                    }
+                    if ((p[8] == "") && (myReader["URL"] == DBNull.Value))
                     {
                         count += 1;
                     }
+                    else
+                    { // this way will check only the address and not the protocol (ex, http and https)
+                        string str1, str2;
+                        int i;
+                        
+                        str1 = p[8];
+                        i = str1.IndexOf("://");
+                        if (i != -1)
+                            str1 = str1.Remove(0, i);
 
+                        str2 = myReader["URL"].ToString();
+                        i = str2.IndexOf("://");
+                        if (i != -1)
+                            str2 = str2.Remove(0, i);
+
+                        if (str1 == str2)
+                            count += 1;
+                    }
                     if ((p[13] == myReader["FullAddress"].ToString()) || ((p[13] == "") && (myReader["FullAddress"] == DBNull.Value)))
                     {
                         count += 1;
@@ -3507,26 +5808,20 @@ namespace PlayingWithCsharp
             {
                 Console.WriteLine(e.ToString());
             }
-            
-            ///// COMECAR A INSERIR LOCATIONS A PARTIR DAQUI. PRECISARA DE OUTRA SENTENCA SQL PARA A TABELA LOCATION
-
-            SqlCommand myCommandDealer = new SqlCommand("INSERT INTO Dealers (DealerID, Name, URL, Latitude, Longitude, FullAddress, StreetName, City, Province, PostalCode, Country, Map, Contact) Values (@DealerID, @Company, @CompanyURL, @Latitude, @Longitude, @FullAddress, @StreetName, @City, @Province, @PostalCode, @Country, @Map, @CompanyPhone)", myConnection2);
-
 
             bigger += 1;
             if (bigger > 30000)
             {
-                Console.Write("WARNING: To many DealerIDs with almost the same name (the difference is the number)!");
+                Console.Write("WARNING: To many DealerIDs with almost the same name (the difference is the number)!\n\n");
                 AtTheEnd = AtTheEnd + "\nWARNING: To many DealerIDs with almost the same name! (the difference is the number)\n\n";
             }
-            SqlParameter p41a = new SqlParameter();
-            p41a.ParameterName = "@DealerID";
+
             temp = p[7];
             if (temp.Length > 14)
-                temp = temp.Substring(0,14);
+                temp = temp.Substring(0, 14);
             for (int i = temp.Length; i < 15; i++)
                 temp += "_";
-            string temp1 = temp + bigger.ToString();
+            string DealerID = temp + bigger.ToString();
 
             try
             {
@@ -3539,14 +5834,14 @@ namespace PlayingWithCsharp
 
                     SqlParameter select = new SqlParameter();
                     select.ParameterName = "@ID";
-                    select.Value = temp1;
+                    select.Value = DealerID;
                     myCommandReader.Parameters.Add(select);
                     myReader = myCommandReader.ExecuteReader();
                     if (myReader.Read())
                     {
                         exist = true;
                         bigger += 1;
-                        temp1 = temp + bigger.ToString();
+                        DealerID = temp + bigger.ToString();
                     }
                     myReader.Close();
                 }
@@ -3557,14 +5852,119 @@ namespace PlayingWithCsharp
                 Console.WriteLine(e.ToString());
             }
 
-            p41a.Value = temp1;
-            myCommandDealer.Parameters.Add(p41a);
+            do
+            { // if it is an online deal, locations will be empty. So, DealerDetails must be initialized only to include an empty location into the database. If not, the location is not included and the deal data may not be found because the queries take location into consideration
+                location DealerDetails = new location();
+
+                if (locations.CountLocations() != 0)
+                    DealerDetails = locations.GetRemoveLocation(0);
+
+                using (SqlCommand myCommandLocation = new SqlCommand("INSERT INTO Locations (DealerID, Latitude, Longitude, StreetName, City, Province, PostalCode, Country, Map, Contact) Values (@DealerID, @Latitude, @Longitude, @StreetName, @City, @Province, @PostalCode, @Country, @Map, @CompanyPhone)", myConnection2))
+                {
+                    SqlParameter p41a = new SqlParameter();
+                    p41a.ParameterName = "@DealerID";
+                    p41a.Value = DealerID;
+                    myCommandLocation.Parameters.Add(p41a);
+
+                    SqlParameter p9 = new SqlParameter();
+                    p9.ParameterName = "@Latitude";
+                    temp = DealerDetails.GetLatitude();
+                    if ((temp == "") || (temp == "{:-("))
+                        p9.Value = DBNull.Value;
+                    else
+                        p9.Value = temp;
+                    myCommandLocation.Parameters.Add(p9);
+
+                    SqlParameter p10 = new SqlParameter();
+                    p10.ParameterName = "@Longitude";
+                    temp = DealerDetails.GetLongitude();
+                    if ((temp == "") || (temp == "{:-("))
+                        p10.Value = DBNull.Value;
+                    else
+                        p10.Value = temp;
+                    myCommandLocation.Parameters.Add(p10);
+
+                    SqlParameter p12 = new SqlParameter();
+                    p12.ParameterName = "@StreetName";
+                    temp = DealerDetails.GetStreetAddress();
+                    if ((temp == "") || (temp == "{:-("))
+                        p12.Value = DBNull.Value;
+                    else
+                        p12.Value = temp;
+                    myCommandLocation.Parameters.Add(p12);
+
+                    SqlParameter p13 = new SqlParameter();
+                    p13.ParameterName = "@City";
+                    temp = DealerDetails.GetCity();
+                    if ((temp == "") || (temp == "{:-("))
+                        p13.Value = DBNull.Value;
+                    else
+                        p13.Value = temp;
+                    myCommandLocation.Parameters.Add(p13);
+
+                    SqlParameter p14 = new SqlParameter();
+                    p14.ParameterName = "@PostalCode";
+                    temp = DealerDetails.GetPostalCode();
+                    if ((temp == "") || (temp == "{:-("))
+                        p14.Value = DBNull.Value;
+                    else
+                        p14.Value = temp;
+                    myCommandLocation.Parameters.Add(p14);
+
+                    SqlParameter p15 = new SqlParameter();
+                    p15.ParameterName = "@Country";
+                    temp = DealerDetails.GetCountry();
+                    if ((temp == "") || (temp == "{:-("))
+                        p15.Value = DBNull.Value;
+                    else
+                        p15.Value = temp;
+                    myCommandLocation.Parameters.Add(p15);
+
+                    SqlParameter p16 = new SqlParameter();
+                    p16.ParameterName = "@Map";
+                    temp = DealerDetails.GetMap();
+                    if ((temp == "") || (temp == "{:-("))
+                        p16.Value = DBNull.Value;
+                    else
+                        p16.Value = temp;
+                    myCommandLocation.Parameters.Add(p16);
+
+                    SqlParameter p17 = new SqlParameter();
+                    p17.ParameterName = "@CompanyPhone";
+                    temp = DealerDetails.GetContact();
+                    if ((temp == "") || (temp == "{:-("))
+                        p17.Value = DBNull.Value;
+                    else
+                        p17.Value = temp;
+                    myCommandLocation.Parameters.Add(p17);
+
+                    SqlParameter p18 = new SqlParameter();
+                    p18.ParameterName = "@Province";
+                    temp = DealerDetails.GetProvince();
+                    if ((temp == "") || (temp == "{:-("))
+                        p18.Value = DBNull.Value;
+                    else
+                        p18.Value = temp;
+                    myCommandLocation.Parameters.Add(p18);
+
+                    myCommandLocation.ExecuteNonQuery();
+                }
+            } while (locations.CountLocations() > 0);
+
+            
+            SqlCommand myCommandDealer = new SqlCommand("INSERT INTO Dealers (DealerID, Name, URL, FullAddress) Values (@DealerID, @Company, @CompanyURL, @FullAddress)", myConnection2);
+//            SqlCommand myCommandDealer = new SqlCommand("INSERT INTO Dealers (DealerID, Name, URL, Latitude, Longitude, FullAddress, StreetName, City, Province, PostalCode, Country, Map, Contact) Values (@DealerID, @Company, @CompanyURL, @Latitude, @Longitude, @FullAddress, @StreetName, @City, @Province, @PostalCode, @Country, @Map, @CompanyPhone)", myConnection2);
+
+            SqlParameter p41b = new SqlParameter();
+            p41b.ParameterName = "@DealerID";
+            p41b.Value = DealerID;
+            myCommandDealer.Parameters.Add(p41b);
 
             //Everything is NULL in the dealer
-            if ((p[8] == "") && (p[11] == "") && (p[12] == "") && (p[13] == "") && (p[14] == "") && (p[15] == "") && (p[16] == "") && (p[17] == "") && (p[18] == "") && (p[19] == "") && (p[43] == ""))
+            if ((p[8] == "") && (p[13] == ""))
             {
-                Console.WriteLine("WARNING: Check Dealer " + temp1 + ". It is completely NULL\n");
-                AtTheEnd = AtTheEnd + "WARNING: Check Dealer " + temp1 + ". It is completely NULL\n";
+                Console.WriteLine("WARNING: Check Dealer " + DealerID + ". It is completely NULL\n");
+                AtTheEnd = AtTheEnd + "WARNING: Check Dealer " + DealerID + ". It is completely NULL\n";
             }
 
             SqlParameter p5 = new SqlParameter();
@@ -3583,22 +5983,6 @@ namespace PlayingWithCsharp
                 p6.Value = p[8];
             myCommandDealer.Parameters.Add(p6);
 
-            SqlParameter p9 = new SqlParameter();
-            p9.ParameterName = "@Latitude";
-            if ((p[11] == "") || (p[11] == "{:-("))
-                p9.Value = DBNull.Value;
-            else
-                p9.Value = p[11];
-            myCommandDealer.Parameters.Add(p9);
-
-            SqlParameter p10 = new SqlParameter();
-            p10.ParameterName = "@Longitude";
-            if ((p[12] == "") || (p[12] == "{:-("))
-                p10.Value = DBNull.Value;
-            else
-                p10.Value = p[12];
-            myCommandDealer.Parameters.Add(p10);
-
             SqlParameter p11 = new SqlParameter();
             p11.ParameterName = "@FullAddress";
             if ((p[13] == "") || (p[13] == "{:-("))
@@ -3607,65 +5991,9 @@ namespace PlayingWithCsharp
                 p11.Value = p[13];
             myCommandDealer.Parameters.Add(p11);
 
-            SqlParameter p12 = new SqlParameter();
-            p12.ParameterName = "@StreetName";
-            if ((p[14] == "") || (p[14] == "{:-("))
-                p12.Value = DBNull.Value;
-            else
-                p12.Value = p[14];
-            myCommandDealer.Parameters.Add(p12);
-
-            SqlParameter p13 = new SqlParameter();
-            p13.ParameterName = "@City";
-            if ((p[15] == "") || (p[15] == "{:-("))
-                p13.Value = DBNull.Value;
-            else
-                p13.Value = p[15];
-            myCommandDealer.Parameters.Add(p13);
-
-            SqlParameter p14 = new SqlParameter();
-            p14.ParameterName = "@PostalCode";
-            if ((p[16] == "") || (p[16] == "{:-("))
-                p14.Value = DBNull.Value;
-            else
-                p14.Value = p[16];
-            myCommandDealer.Parameters.Add(p14);
-
-            SqlParameter p15 = new SqlParameter();
-            p15.ParameterName = "@Country";
-            if ((p[17] == "") || (p[17] == "{:-("))
-                p15.Value = DBNull.Value;
-            else
-                p15.Value = p[17];
-            myCommandDealer.Parameters.Add(p15);
-
-            SqlParameter p16 = new SqlParameter();
-            p16.ParameterName = "@Map";
-            if ((p[18] == "") || (p[18] == "{:-("))
-                p16.Value = DBNull.Value;
-            else
-                p16.Value = p[18];
-            myCommandDealer.Parameters.Add(p16);
-
-            SqlParameter p17 = new SqlParameter();
-            p17.ParameterName = "@CompanyPhone";
-            if ((p[19] == "") || (p[19] == "{:-("))
-                p17.Value = DBNull.Value;
-            else
-                p17.Value = p[19];
-            myCommandDealer.Parameters.Add(p17);
-
-            SqlParameter p18 = new SqlParameter();
-            p18.ParameterName = "@Province";
-            if ((p[43] == "") || (p[43] == "{:-("))
-                p18.Value = DBNull.Value;
-            else
-                p18.Value = p[43];
-            myCommandDealer.Parameters.Add(p18);
-
             myCommandDealer.ExecuteNonQuery();
             
-            return (temp1);
+            return (DealerID);
         }
 
         private void SeparateLatLong(ref string p, ref string p_2)
@@ -3684,8 +6012,8 @@ namespace PlayingWithCsharp
             {
                 p_2 = p.Substring(b, p.Length - b);
                 p = p.Substring(0, b - 1);
-                RemoveSpaces(ref p_2, true);
-                RemoveSpaces(ref p, true);
+                RemoveSpaces(ref p_2, true, true);
+                RemoveSpaces(ref p, true, true);
             }
         }
 
@@ -3770,12 +6098,12 @@ namespace PlayingWithCsharp
             tag.data[6] = "";
             tag.data[7] = "?\"\\\"og:title\\\" content=\\\"\";@\"\\\"/>\"";
             tag.data[8] = "?\"<a itemprop=\\\"url\\\" href=\\\"\";@\"\\\"\";||?\"\\\"og:url\\\" content=\\\"\";@\"\\\"\"";
-            tag.data[9] = "?\"\\\"og:image\\\" content=\\\"\";@\"\\\"\"";
+            tag.data[9] = "?\"<a class=\\\"dealImage\";?\"<img src=\\\"\"-\"<div class=\\\"whywhat clearfix\\\">\";@\"\\\"\"||?\"\\\"og:image\\\" content=\\\"\";@\"\\\"\"";
             tag.data[10] = "?\"\\\"og:description\\\" content=\\\"\";@\"\\\"/>\";||?\"\var DealName = \\\"\";@\"\\\";\"";
             tag.data[11] = "?\"\\\"og:latitude\\\" content=\\\"\";@\"\\\"\";||?\"&sll=\";@\",\";||?\"&ll=\";@\",\"";
             tag.data[12] = "?\"\\\"og:longitude\\\" content=\\\"\";@\"\\\"\"||?\"&sll=\";?\",\";@\"&\";||?\"&ll=\";?\",\";@\"&\"";
             tag.data[13] = "#\"#2#\";?\"ocations:</strong>\";@\"<div class=\\\"divReviews\\\">\"";
-            tag.data[14] = "?\"\\\"og:street-address\\\" content=\\\"\";@\"\\\" />\" ";
+            tag.data[14] = "?\"\\\"og:street-address\\\" content=\\\"\";@\"\\\" />\"";
             tag.data[15] = "?\"\\\"og:locality\";?\"content=\\\"\"-\"/>\";@\",\"||?\"\\\"og:locality\\\" content=\\\"\";@\"\\\" />\"";
             tag.data[16] = "?\"\\\"og:postal-code\\\" content=\\\"\";@\"\\\" />\"";
             tag.data[17] = "?\"\\\"og:country-name\\\" content=\\\"\";@\"\\\" />\"||?\"<div class=\\\"cities\"-\"var DealName\";?$43;?<\"cities list\";@\"\\\"\"";
@@ -3804,7 +6132,7 @@ namespace PlayingWithCsharp
             tag.data[40] = "";
             tag.data[41] = "?2\"/\""; //find DealID/AlternativeID in weblink
             tag.data[42] = "?\"var AffiliateLinkURL = \\\"\";?4\"/\";@\"\\\";\""; //Alternative ID
-            tag.data[43] = "?\"\\\"og:locality\";?\"content=\\\"\"-\"/>\";?\",\";@\"\\\" />\";0;#\"\\|\\|\";?\"<div class=\\\"cities\";?$44;?<\"<h3>\";@\"<\"||?\"\\\"og:locality\";?\"content=\\\"\"-\"/>\";?\",\";@\"\\\" />\"||?\"<div class=\\\"cities\";?$44;?<\"<h3>\";@\"<\"";
+            tag.data[43] = "?\"\\\"og:region\\\" content=\\\"\";@\"\\\"\";||?\"\\\"og:locality\";?\"content=\\\"\"-\"/>\";?\",\";@\"\\\" />\";0;#\"\\|\\|\";?\"<div class=\\\"cities\";?$44;?<\"<h3>\";@\"<\"||?\"\\\"og:locality\";?\"content=\\\"\"-\"/>\";?\",\";@\"\\\" />\"||?\"<div class=\\\"cities\";?$44;?<\"<h3>\";@\"<\"";
             tag.data[44] = "?\"var UserCityName = \\\"\";@\"\\\"\"";
             tag.data[45] = "";
             tag.data[46] = "";
@@ -3828,7 +6156,7 @@ namespace PlayingWithCsharp
             tag.data[10] = "?\"\\\"og:title\\\" content=\\\"TeamBuy.ca |\";@\"\\\" />\"";
             tag.data[11] = "?\"http://maps.google.ca/maps?\";?\"&sll=\";@\",\"";
             tag.data[12] = "?\"http://maps.google.ca/maps?\";?\"&sll=\";?\",\";@\"&\"";
-            tag.data[13] = "#\"#4#\";?\"Locations:\";@\"<div style=\\\"float:right\\\">\";0;#\";\";?\"http://maps.google.ca/maps\"-\"<!-- GOOGLE MAP -->\";?\"http://maps.google.ca/maps\";?<\"<!-- -->\";(?\"http://maps.google.ca/maps\";@\"\\\"\");||#\"#4#\";?\"Locations:\";@\"<div style=\\\"float:right\\\">\";||#\"#4#\";?\"http://maps.google.ca/maps\"-\"<!-- GOOGLE MAP -->\";?\"http://maps.google.ca/maps\";?<\"<!-- -->\";(?\"http://maps.google.ca/maps\";@\"\\\"\");||#\"#4#\";?\"$(\\\"#more_maps\\\")\";(?\"http://maps.google.ca/maps\";@\"\\\"\")";
+            tag.data[13] = "#\"#4#\";?\"Locations:\";@\"<div style=\\\"float:right\\\">\";0;#\";\";?\"http://maps.google.ca/maps\"-\"<!-- GOOGLE MAP -->\";?\"http://maps.google.ca/maps\";?<\"<div\";(#\"%city\";?\">\";@\"<\";?\"http://maps.google.ca/maps\";@\"\\\"\");||#\"#4#\";?\"Locations:\";@\"<div style=\\\"float:right\\\">\";||#\"#4#\";?\"http://maps.google.ca/maps\"-\"<!-- GOOGLE MAP -->\";?\"http://maps.google.ca/maps\";?<\"<div\";(#\"%city\";?\">\";@\"<\";?\"http://maps.google.ca/maps\";@\"\\\"\";?\"</a\");||#\"#4#\";?\"<div id=\\\"companyAddress\\\"\";#\"%loca\";?\">\";@\"<\";?\"http://maps.google.ca/maps\";@\"\\\"\";||#\"#4#\";?\"$(\\\"#more_maps\\\")\";(?\"http://maps.google.ca/maps\";@\"\\\"\")";
             tag.data[14] = "?\"<div id=\\\"companyAddress\\\">\";@\"</div>\"";
             tag.data[15] = "";
             tag.data[16] = "";
@@ -3918,17 +6246,17 @@ namespace PlayingWithCsharp
             tag.data[5] = "?\"id=\\\"deal_headline\\\"><a href=\\\"\";@\"\\\">\"";
             tag.data[6] = "";
             tag.data[7] = "?\"<!-- <h1>About \";@\"</h1>\"";
-            tag.data[8] = "?\"<br /><a href=\\\"\";@\"\\\"\";||?\"from <a href=\\\"\";@\"\\\"\";||?\"at <a href=\\\"\";@\"\\\"\";||?\"at<a href=\\\"\";@\"\\\"\";||?\"service on <a href=\\\"\"@\"\\\"\";||?\"target=\\\"_blank\\\">site\";?<\"<a href=\\\"\";@\"\\\"\"";
+            tag.data[8] = "?\"<br /><a href=\\\"\";@\"\\\"\";||?\"from <a href=\\\"\";@\"\\\"\";||?\"at <a href=\\\"\";@\"\\\"\";||?\"at<a href=\\\"\";@\"\\\"\";||?\"service on <a href=\\\"\"@\"\\\"\";||?\"target=\\\"_blank\\\">site\";?<\"<a href=\\\"\";@\"\\\"\";||?\"at the <a href=\\\"\";@\"\\\"\"";
             tag.data[9] = "?\"\\\"og:image\\\" content=\\\"\";@\"\\\"\"";
             tag.data[10] = "?\"<meta name=\\\"description\\\" content=\\\"\";@\"\\\"/>\"";
             tag.data[11] = "";
             tag.data[12] = "";
-            tag.data[13] = "#\"#3#\";?\"var sites = [[\";?<\"var\";@\"]]\"||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||#\"#3#\";?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\"";
+            tag.data[13] = "#\"#3#\";?\"var sites = [[\";?<\"var\";@\"]]\";0;#\"/$/\";?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"</p>\";@\"<br /><a href=\\\"\"||#\"#3#\";?\"var sites = [[\";?<\"var\";@\"]]\"||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||#\"#3#\";?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\";||#\"#3#\";?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";@\"<br /><a href=\\\"\"";
 //            tag.data[13] = "?\"var sites = [[\";?<\"var\";@\"]]\"||?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\"||?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";@\"<br /><a href=\\\"\"";
             tag.data[14] = "";
             tag.data[15] = "";
             tag.data[16] = "";
-            tag.data[17] = "";
+            tag.data[17] = "#\"Canada\"";
             tag.data[18] = "";
             tag.data[19] = "";
             tag.data[20] = "?\"<td>Regular Price:</td><td>\";@\"</td>\"";
@@ -3977,7 +6305,7 @@ namespace PlayingWithCsharp
             tag.data[10] = "?\"<meta name=\\\"description\\\" content=\\\"\";@\"\\\"/>\"";
             tag.data[11] = "";
             tag.data[12] = "";
-            tag.data[13] = "#\"#3#\";?\"var sites = [[\";?<\"var\";@\"]]\"||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||#\"#3#\";?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\"";
+            tag.data[13] = "#\"#3#\";?\"var sites = [[\";?<\"var\";@\"]]\"||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||#\"#3#\";?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\"||#\"#3#\";?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";@\"<br /><a href=\\\"\"";
             tag.data[14] = "";
             tag.data[15] = "";
             tag.data[16] = "";
@@ -4035,7 +6363,7 @@ namespace PlayingWithCsharp
             tag.data[15] = "";
             tag.data[16] = "";
             tag.data[17] = "?\"<div class=\\\"all-cities\\\">\";?$44;?<\"<h2>\";@\"<\"";
-            tag.data[18] = "?\"class=\\\"directions\\\"><a href=\\\"\";@\"\\\"\"";
+            tag.data[18] = "(?\"class=\\\"directions\\\"><a href=\\\"\";@\"\\\"\"),\"\\|\"";
             tag.data[19] = "";
             tag.data[20] = "";
             tag.data[21] = "?\"<div class=\\\"deal-price \\\">\";?\"</sup>\";@\"</div>\";||?\"<div class=\\\"deal-price \\\">\";@\"<\"   ";
@@ -4045,7 +6373,7 @@ namespace PlayingWithCsharp
             tag.data[25] = "";
             tag.data[26] = "";
             tag.data[27] = "";
-            tag.data[28] = "?\"class=\\\"last\\\">\"-\"sfwt_short_1\";?\">\";@\"</div>\"";
+            tag.data[28] = "?\"<span class=\\\"num\\\">\";@\"</div>\"||?\"class=\\\"last\\\">\"-\"sfwt_short_1\";?\">\";@\"</div>\"";
             tag.data[29] = "#\"#2#\"";
             tag.data[30] = "";
             tag.data[31] = "";
@@ -4061,7 +6389,7 @@ namespace PlayingWithCsharp
             tag.data[41] = "?2\"/\";@\"-\""; //find DealID/AlternativeID in weblink
             tag.data[42] = ""; //Alternative ID
             tag.data[43] = "";
-            tag.data[44] = "?\"title=\\\"LivingSocial -\";@\"\\\"\"";
+            tag.data[44] = "#\"/\";?2\"<link href=\\\"http://www.livingsocial.com/\";?\"-\";@\".\";#\"\\\"\"";
             tag.data[45] = "";
             tag.data[46] = "";
             tag.data[47] = "";
@@ -4128,50 +6456,104 @@ namespace PlayingWithCsharp
             tag.data[49] = "?\"<title>\";@\":\"";
             ListTags.Add(tag);
 
-/*            tag = new Tags();
-            tag.data[0] = "$http://http://www.dealticker.com/get-xml-feed.php?user=16465";
-            tag.data[1] = "";
-            tag.data[2] = "";
-            tag.data[3] = "";
-            tag.data[4] = " ";
-            tag.data[5] = " ";
+            tag = new Tags();
+            tag.data[0] = "http://www.takeitandgo.ca/localdeals/show/Toronto";
+            tag.data[1] = "?\"404 Not Found\";@\">\"||?\"HTTP Status 404\";@\"</\"";
+            tag.data[2] = "?\"<div id=\\\"citybox\";(?\"<a href='\";@\"'\")-\"<!-- footer End -->\"";
+            tag.data[3] = "?\"<!-- related deals -->\";(?\"<p><a href=\\\"https://takeitandgo.ca/localdeals/\";@\"\\\"\")";
+            tag.data[4] = "?\"https://takeitandgo.ca/localdeals/show/\";?\"/\"@\"&\"";
+            tag.data[5] = "?\"share this deal\";?2\"https://\";?<\" \";@\"\\\"\"";
             tag.data[6] = " ";
-            tag.data[7] = " ";
-            tag.data[8] = " ";
-            tag.data[9] = " ";
-            tag.data[10] = " ";
+            tag.data[7] = "?\"<div class=\\\"dealbox\\\">\";?\">\"@\"<\"";
+            tag.data[8] = "?\"<div class=\\\"infobox\";?\"<a href='\";@\"'\"";
+            tag.data[9] = "?\"<link rel=\\\"image_src\";?\"href=\\\"\";@\"\\\"\"";
+            tag.data[10] = "?\"<meta name=\\\"Description\";?\"content=\\\"\";@\"\\\"\"";
             tag.data[11] = " ";
             tag.data[12] = " ";
-            tag.data[13] = " ";
+            tag.data[13] = "#\"#6#\";?\"<div class=\\\"infobox\";?\"</strong>\"-\"</div>\";@\"<a href\"";
             tag.data[14] = " ";
             tag.data[15] = " ";
             tag.data[16] = " ";
-            tag.data[17] = " ";
+            tag.data[17] = "?\"<div id=\\\"citybox\";?$44;?<\"<strong>\";@\"<\"";
             tag.data[18] = " ";
             tag.data[19] = " ";
             tag.data[20] = " ";
-            tag.data[21] = " ";
+            tag.data[21] = "?\"div class=\\\"price_info\";?\"class=\\\"large\\\">\"-\"<div id=\\\"buynow\";@\"<\"";
             tag.data[22] = " ";
-            tag.data[23] = " ";
-            tag.data[24] = " ";
+            tag.data[23] = "?\">savings<\";?\"<p>\";@\"</p>\"";
+            tag.data[24] = "?\"<p>Refer a Friend and Get Paid \";@\"(\"";
             tag.data[25] = " ";
             tag.data[26] = " ";
             tag.data[27] = " ";
             tag.data[28] = " ";
-            tag.data[29] = " ";
-            tag.data[30] = " ";
+            tag.data[29] = "#\"#3#\";?2\"StartCountDown(\\\"time_remaining\\\",\\\"\"@\"\\\"\";||?\"StartCountDown(\\\"time_remaining\\\",\\\"\"@\"\\\"\"";
+            tag.data[30] = "?\">quantity left</h5>\";@\"</p>\"";
             tag.data[31] = " ";
             tag.data[32] = " ";
-            tag.data[33] = " ";
+            tag.data[33] = "?\"function StartCountDown\";?\"images/dealclosed\"-\"function Calcage\";@\"\\\"\"";
             tag.data[34] = " ";
             tag.data[35] = " ";
-            tag.data[36] = " ";
-            tag.data[37] = " ";
-            tag.data[38] = " ";
-            tag.data[39] = " ";
+            tag.data[36] = "?\">Why You Should Take It And Go<\";?\">\";@\">Deal Description<\"";
+            tag.data[37] = "?\">The Fine Print<\";?\">\";@\">Why You Should Take It And Go<\"";
+            tag.data[38] = "?\">Deal Description<\";?\">\";@\">Reviews<\"||?\">Deal Description<\";?\">\";@\">Our Promise and Guarantee<\"";
+            tag.data[39] = "?\">Reviews<\";?\">\";@\">Our Promise and Guarantee<\"";
             tag.data[40] = " ";
+            tag.data[41] = "?2\"/\""; //find DealID/AlternativeID in weblink
+            tag.data[42] = "?\"https://takeitandgo.ca/localdeals/show/\";?\"/\";@\"&\""; //Alternative ID
+            tag.data[43] = "";
+            tag.data[44] = "?\"topcity\\\").innerHTML=\\\"\";@\"\\\"\"";
+            tag.data[45] = "";
+            tag.data[46] = "";
+            tag.data[47] = "";
+            tag.data[48] = "";
+            tag.data[49] = "?\"div id=\\\"header\";?\"alt=\\\"\";@\".\"";
             ListTags.Add(tag);
-*/
+
+
+            /*            tag = new Tags();
+                        tag.data[0] = "$http://http://www.dealticker.com/get-xml-feed.php?user=16465";
+                        tag.data[1] = "";
+                        tag.data[2] = "";
+                        tag.data[3] = "";
+                        tag.data[4] = " ";
+                        tag.data[5] = " ";
+                        tag.data[6] = " ";
+                        tag.data[7] = " ";
+                        tag.data[8] = " ";
+                        tag.data[9] = " ";
+                        tag.data[10] = " ";
+                        tag.data[11] = " ";
+                        tag.data[12] = " ";
+                        tag.data[13] = " ";
+                        tag.data[14] = " ";
+                        tag.data[15] = " ";
+                        tag.data[16] = " ";
+                        tag.data[17] = " ";
+                        tag.data[18] = " ";
+                        tag.data[19] = " ";
+                        tag.data[20] = " ";
+                        tag.data[21] = " ";
+                        tag.data[22] = " ";
+                        tag.data[23] = " ";
+                        tag.data[24] = " ";
+                        tag.data[25] = " ";
+                        tag.data[26] = " ";
+                        tag.data[27] = " ";
+                        tag.data[28] = " ";
+                        tag.data[29] = " ";
+                        tag.data[30] = " ";
+                        tag.data[31] = " ";
+                        tag.data[32] = " ";
+                        tag.data[33] = " ";
+                        tag.data[34] = " ";
+                        tag.data[35] = " ";
+                        tag.data[36] = " ";
+                        tag.data[37] = " ";
+                        tag.data[38] = " ";
+                        tag.data[39] = " ";
+                        tag.data[40] = " ";
+                        ListTags.Add(tag);
+            */
 
             // end of hard coding tags
 
@@ -4182,10 +6564,10 @@ namespace PlayingWithCsharp
             baseaddress.Add("http://www.wagjag.com/?$&vertical=grocery");
             baseaddress.Add("http://www.livingsocial.com/cities/$");
             baseaddress.Add("http://www.dealticker.com/$");
+            baseaddress.Add("https://takeitandgo.ca/localdeals/$");
 
             List<string> DontHandleFirstPage = new List<string>();
             DontHandleFirstPage.Add("http://www.teambuy.ca/toronto");
-
 
             // Transfer Timed Out Deals to DealsEnded Table
             SqlConnection myConnection = new SqlConnection("server=MEDIACONNECT-PC\\MCAPPS; Trusted_Connection=yes; database=Deals; connection timeout=15");
@@ -4206,6 +6588,7 @@ namespace PlayingWithCsharp
                     Console.WriteLine(error.ToString());
                 }
             }
+
             DateTimeOffset current_time = DateTimeOffset.Now;
             using (SqlCommand myCommand = new SqlCommand("MERGE Deals.dbo.DealsEnded USING (SELECT * FROM [Deals].[dbo].[DealsList] where ExpiryTime < @CURRENT_TIME) as source on (Deals.dbo.DealsEnded.DealID = source.dealID) WHEN not matched then insert (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite) Values (source.Website, source.DealID, source.DealLinkURL, source.Category, source.Image, source.Description, source.DealerID, source.RegularPrice, source.OurPrice, source.Saved, source.Discount, source.PayOutAmount, source.PayOutLink, source.ExpiryTime, source.MaxNumberVouchers, source.MinNumberVouchers, source.PaidVoucherCount, source.DealExtractedTime, source.Highlights, source.BuyDetails, source.DealText, source.Reviews, source.DealSite);", myConnection))
             {
@@ -4216,6 +6599,7 @@ namespace PlayingWithCsharp
 
                 myCommand.ExecuteNonQuery();
             }
+
             using (SqlCommand myCommand = new SqlCommand("DELETE FROM [Deals].[dbo].[DealsList] where ExpiryTime < @CURRENT_TIME", myConnection))
             {
                 SqlParameter param = new SqlParameter();
@@ -4225,13 +6609,18 @@ namespace PlayingWithCsharp
 
                 myCommand.ExecuteNonQuery();
             }
+
             myConnection.Close();
 
+            int numThreads = ListTags.Count;
+            ManualResetEvent resetEvent = new ManualResetEvent(false);
+            int toProcess = numThreads;
 
+            Console.WriteLine(DateTime.Now);
 
-  //          for (int i = 0; i < ListTags.Count; i++)
+//            for (int i = 0; i < ListTags.Count; i++)
             {
-                int i = 5;
+                int i = 6;
                 string website = ListTags.ElementAt(i).data[0];
                 if ((website.Length > 6) && (website.Substring(0, 6) != "$STOP$"))
                 {
@@ -4258,7 +6647,7 @@ namespace PlayingWithCsharp
             }*/
 
             // Transfer Timed Out Deals to DealsEnded Table again (normally half an hour after the previous transfer)
-            myConnection = new SqlConnection("server=MEDIACONNECT-PC\\MCAPPS; Trusted_Connection=yes; database=Deals; connection timeout=15");
+  /*          myConnection = new SqlConnection("server=MEDIACONNECT-PC\\MCAPPS; Trusted_Connection=yes; database=Deals; connection timeout=15");
             try
             {
                 myConnection.Open();
@@ -4276,6 +6665,7 @@ namespace PlayingWithCsharp
                     Console.WriteLine(error.ToString());
                 }
             }
+
             current_time = DateTimeOffset.Now;
             using (SqlCommand myCommand = new SqlCommand("MERGE Deals.dbo.DealsEnded USING (SELECT * FROM [Deals].[dbo].[DealsList] where ExpiryTime < @CURRENT_TIME) as source on (Deals.dbo.DealsEnded.DealID = source.dealID) WHEN not matched then insert (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite) Values (source.Website, source.DealID, source.DealLinkURL, source.Category, source.Image, source.Description, source.DealerID, source.RegularPrice, source.OurPrice, source.Saved, source.Discount, source.PayOutAmount, source.PayOutLink, source.ExpiryTime, source.MaxNumberVouchers, source.MinNumberVouchers, source.PaidVoucherCount, source.DealExtractedTime, source.Highlights, source.BuyDetails, source.DealText, source.Reviews, source.DealSite);", myConnection))
             {
@@ -4286,6 +6676,7 @@ namespace PlayingWithCsharp
 
                 myCommand.ExecuteNonQuery();
             }
+
             using (SqlCommand myCommand = new SqlCommand("DELETE FROM [Deals].[dbo].[DealsList] where ExpiryTime < @CURRENT_TIME", myConnection))
             {
                 SqlParameter param = new SqlParameter();
@@ -4295,9 +6686,10 @@ namespace PlayingWithCsharp
 
                 myCommand.ExecuteNonQuery();
             }
-            myConnection.Close();
-            
-//            myChoice = Console.ReadLine();
+
+            myConnection.Close();*/
+
+            string myChoice = Console.ReadLine();
         }
     }
 }
