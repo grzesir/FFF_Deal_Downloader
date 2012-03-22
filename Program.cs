@@ -11,6 +11,8 @@ using System.Reflection;
 using System.Net.Cache;
 using System.Xml;
 using System.Collections.Concurrent;
+using MySql.Data.MySqlClient;
+
 namespace PlayingWithCsharp
 {
     public class location
@@ -442,6 +444,7 @@ namespace PlayingWithCsharp
     {
         Tags oneWebsite;
         string baseAddress;
+        string errors;
         List<string> DontHandleFirstPage;
         List<int> RecursList = new List<int>();
         string AtTheEnd;
@@ -1066,7 +1069,7 @@ namespace PlayingWithCsharp
                     c = c + 1;
                     c2 = c + 1;
                     int num = -1;
-                    if ((str[c2] >= '0') && (str[c2] <= '9') && (str[c] >= '0') && (str[c] <= '9'))
+                    if ((c2 < str.Length) && (str[c2] >= '0') && (str[c2] <= '9') && (str[c] >= '0') && (str[c] <= '9'))
                     {
                         num = Convert.ToInt16(str.Substring(c, 2));
                         c += 1;
@@ -1812,7 +1815,10 @@ namespace PlayingWithCsharp
                         j++;
                     if (j > i + 3)
                         result = result.Replace(result.Substring(i + 3, j - i - 3), "");
-                    i = result.IndexOf(htmlTag, i + 1);
+                    if (i + 1 < result.Length)
+                        i = result.IndexOf(htmlTag, i + 1);
+                    else
+                        i = -1;
                 }
                 else
                 {
@@ -1838,6 +1844,14 @@ namespace PlayingWithCsharp
             result = result.Replace("&lt;", "<");
             result = result.Replace("&gt;", ">");
             result = result.Replace("&tilde;", "~");
+            result = result.Replace("&ensp;", " ");
+            result = result.Replace("&emsp;", " ");
+            result = result.Replace("&thinsp;", " ");
+            result = result.Replace("&zwnj;", " ");
+            result = result.Replace("&zwj;", " ");
+            result = result.Replace("&lrm;", " ");
+            result = result.Replace("&rlm;", " ");
+
             RemoveSpaces(ref result, false, false);
         }
 
@@ -2191,7 +2205,7 @@ namespace PlayingWithCsharp
                         SideDeals.RemoveAt(0);
                     }
 
-//                    URL = "http://www.giltcity.com/miami/flyingtrapezemiami";
+//                    URL = "http://www.teambuy.ca/toronto/28136479/";
                     if ((part_URL.Length >= 7) && (part_URL.Substring(0, 7) == "http://"))
                         URL = part_URL;
                     else
@@ -2399,7 +2413,7 @@ namespace PlayingWithCsharp
                                         for (int j = 5; j < 50; j++)
                                         {
 //                                            Console.Write(j + " ");
-//                                            if ((j == 20) || (j == 21) || (j == 23))
+//                                            if ((item == "montreal") && (j == 25))
 //                                            {
 //                                                Console.Write("");
 //                                            }
@@ -2554,7 +2568,7 @@ namespace PlayingWithCsharp
 
             int timesCalled = 0;
             int googleMapsCalled = 0;
-            SqlConnection myConnection;
+            MySqlConnection myConnection;
 
 //            Console.WriteLine("\n\nNow listing cities with the same deal:");
             writer.WriteLine("\n\n\n\nNow listing cities with the same deal:");
@@ -2584,14 +2598,14 @@ namespace PlayingWithCsharp
 //            Console.WriteLine();
             writer.WriteLine("\n\n\n\nTotal of deals: " + listOfEvaluatedDeals.CountDeals());
 
-            myConnection = new SqlConnection("server=MEDIACONNECT-PC\\MCAPPS; Trusted_Connection=yes; database=Deals; connection timeout=15");
+            myConnection = new MySqlConnection("server=localhost; database=Deals; UID=root; PASSWORD=bahia96; connection timeout=15");
             try
             {
                 myConnection.Open();
             }
             catch (Exception e)
             {
-                myConnection = new SqlConnection("server=FIVEFINGERFINDS\\MEDIACONNECT; Trusted_Connection=yes; database=Deals; connection timeout=15");
+                myConnection = new MySqlConnection("server=localhost; database=Deals; UID=root; PASSWORD=mcconnect1G7n0; connection timeout=15");
                 try
                 {
                     myConnection.Open();
@@ -2606,6 +2620,7 @@ namespace PlayingWithCsharp
             List<string> removeText = new List<string>();
             removeText.Add("products shipped to you");
             removeText.Add("valid locations");
+            removeText.Add("available at");
             removeText.Add("include photo");
             removeText.Add("(map)");
             removeText.Add("get directions");
@@ -2772,136 +2787,6 @@ namespace PlayingWithCsharp
                         }
                         listOfDeals.Add(DealData);
                     }
-
-/*
-                    List<string> DealIds = new List<string>();      // dd.data[4]
-                    List<string> Descriptions = new List<string>(); // dd.data[10]
-                    List<string> RegPrices = new List<string>();    // dd.data[20]
-                    List<string> OurPrices = new List<string>();    // dd.data[21]
-                    List<string> Savings = new List<string>();      // dd.data[22]
-                    List<string> Discounts = new List<string>();    // dd.data[23]
-                    List<string> PaidVouchers = new List<string>(); // dd.data[35]
-                    RemoveSpaces(ref dd.data[4], true, true);
-                    RemoveSpaces(ref dd.data[10], true, true);
-                    RemoveSpaces(ref dd.data[20], true, true);
-                    RemoveSpaces(ref dd.data[21], true, true);
-                    RemoveSpaces(ref dd.data[22], true, true);
-                    RemoveSpaces(ref dd.data[23], true, true);
-                    RemoveSpaces(ref dd.data[35], true, true);
-                    
-                    i = dd.data[21].LastIndexOf(";&;");
-                    while (i != -1)
-                    {
-                        OurPrices.Add(dd.data[21].Substring((i + 3),dd.data[21].Length - (i + 3)));
-                        dd.data[21] = dd.data[21].Remove(i);
-                        i = dd.data[21].LastIndexOf(";&;");
-                    };
-
-                    i = dd.data[22].LastIndexOf(";&;");
-                    while (i != -1)
-                    {
-                        Savings.Add(dd.data[22].Substring((i + 3), dd.data[22].Length - (i + 3)));
-                        dd.data[22] = dd.data[22].Remove(i);
-                        i = dd.data[22].LastIndexOf(";&;");
-                    };
-
-                    i = dd.data[23].LastIndexOf(";&;");
-                    while (i != -1)
-                    {
-                        Discounts.Add(dd.data[23].Substring((i + 3), dd.data[23].Length - (i + 3)));
-                        dd.data[23] = dd.data[23].Remove(i);
-                        i = dd.data[23].LastIndexOf(";&;");
-                    };
-
-                    i = dd.data[20].LastIndexOf(";&;");
-                    while (i != -1)
-                    {
-                        RegPrices.Add(dd.data[20].Substring((i + 3), dd.data[20].Length - (i + 3)));
-                        dd.data[20] = dd.data[20].Remove(i);
-                        i = dd.data[20].LastIndexOf(";&;");
-                    };
-
-                    i = dd.data[35].LastIndexOf(";&;");
-                    while (i != -1)
-                    {
-                        PaidVouchers.Add(dd.data[35].Substring((i + 3), dd.data[35].Length - (i + 3)));
-                        dd.data[35] = dd.data[35].Remove(i);
-                        i = dd.data[35].LastIndexOf(";&;");
-                    };
-
-                    i = dd.data[10].LastIndexOf(";&;");
-                    while (i != -1)
-                    {
-                        Descriptions.Add(dd.data[10].Substring((i + 3), dd.data[10].Length - (i + 3)));
-                        dd.data[10] = dd.data[10].Remove(i);
-                        i = dd.data[10].LastIndexOf(";&;");
-                    };
-
-                    i = dd.data[4].LastIndexOf(";&;");
-                    while (i != -1)
-                    {
-                        DealIds.Add(dd.data[4].Substring((i + 3), dd.data[4].Length - (i + 3)));
-                        dd.data[4] = dd.data[4].Remove(i);
-                        i = dd.data[4].LastIndexOf(";&;");
-                    };
-
-                    int NumberOfDeals = OurPrices.Count;
-
-                    if (NumberOfDeals == RegPrices.Count)
-                    {
-                        if (Savings.Count != NumberOfDeals)
-                        {
-                            dd.data[22] = "";
-                            Savings = new List<string>();
-                        }
-                    }
-                    
-                    if ((NumberOfDeals == Descriptions.Count) &&
-                       ((NumberOfDeals == PaidVouchers.Count) || (dd.data[35] == "")) &&
-                       ((NumberOfDeals == RegPrices.Count) || (dd.data[20] == "")) &&
-                       ((NumberOfDeals == Discounts.Count) || (dd.data[23] == "")) &&
-                       ((NumberOfDeals == Savings.Count) || (dd.data[22] == "")) &&
-                       ((NumberOfDeals == Discounts.Count) || (NumberOfDeals == Savings.Count)) &&
-                       ((NumberOfDeals == DealIds.Count) || (DealIds.Count == 0)))
-                    {
-                        if (DealIds.Count == 0)
-                        {
-                            for (i = 0; i < NumberOfDeals; i++)
-                            {
-                                DealIds.Add(dd.data[4] + "_" + i);
-                            }
-                        }
-                        for (i = 0; i < NumberOfDeals; i++)
-                        {
-                            Tags DealData = new Tags();
-
-                            for (int ind = 0; ind < 50; ind++)
-                            {
-                                DealData.data[ind] = dd.data[ind];
-                            }
-
-                            DealData.data[4] = DealIds.ElementAt(i);
-                            DealData.data[10] = Descriptions.ElementAt(i);
-                            DealData.data[21] = OurPrices.ElementAt(i);
-                            if (RegPrices.Count > 0)
-                                DealData.data[20] = RegPrices.ElementAt(i);
-                            if (Savings.Count > 0)
-                                DealData.data[22] = Savings.ElementAt(i);
-                            if (Discounts.Count > 0)
-                                DealData.data[23] = Discounts.ElementAt(i);
-                            if (PaidVouchers.Count > 0)
-                                DealData.data[35] = PaidVouchers.ElementAt(i);
-                            listOfDeals.Add(DealData);
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("ERROR: Need more data (Description, OurPrice, RegPrice, DealID, PaidVouchers and (Discounts or Savings)) to divide the Deal into specific deals. DealLink: " + dd.data[5] + ". This deal was discarded.\n");
-                        AtTheEnd = AtTheEnd + "ERROR: Need more data (Description, OurPrice, RegPrice, DealID, PaidVouchers and (Discounts or Savings)) to divide the Deal into specific deals. DealLink: " + dd.data[5] + ". This deal was discarded.\n";
-                        continue;
-                    }
-                    */
-
                 }
 
 
@@ -3003,8 +2888,8 @@ namespace PlayingWithCsharp
                 VouchersHandling(dd);
 // end of Data Handling
 
-                SqlCommand myCommandDeal = null;
-                SqlCommand myCommandOtherData = null;
+                MySqlCommand myCommandDeal = null;
+                MySqlCommand myCommandOtherData = null;
                 Boolean inList = false;
                 string tempExpiryTime = "";
 
@@ -3014,21 +2899,21 @@ namespace PlayingWithCsharp
                     string query = "";
 
                     if (dd.data[34] == "false")
-                        query = "SELECT DealsEnded.Website, DealsEnded.DealID, DealValid, DealsEnded.ExpiryTime FROM DealsEnded, OtherData WHERE DealsEnded.Website = OtherData.Website AND DealsEnded.DealID = OtherData.DealID AND DealsEnded.Website = @Website AND DealsEnded.DealID = @DealID";
+                        query = "SELECT DealsEnded.DealSite, DealsEnded.DealID, DealValid, DealsEnded.ExpiryTime FROM DealsEnded, OtherData WHERE DealsEnded.DealSite = OtherData.DealSite AND DealsEnded.DealID = OtherData.DealID AND DealsEnded.DealSite = @DealSite AND DealsEnded.DealID = @DealID";
                     else
-                        query = "SELECT DealsList.Website, DealsList.DealID, DealValid, DealsList.ExpiryTime FROM DealsList, OtherData WHERE DealsList.Website = OtherData.Website AND DealsList.DealID = OtherData.DealID AND DealsList.Website = @Website AND DealsList.DealID = @DealID";
+                        query = "SELECT DealsList.DealSite, DealsList.DealID, DealValid, DealsList.ExpiryTime FROM DealsList, OtherData WHERE DealsList.DealSite = OtherData.DealSite AND DealsList.DealID = OtherData.DealID AND DealsList.DealSite = @DealSite AND DealsList.DealID = @DealID";
 
-                    using (SqlCommand myCommandChecker1 = new SqlCommand(query, myConnection))
+                    using (MySqlCommand myCommandChecker1 = new MySqlCommand(query, myConnection))
                     {
-                        SqlParameter checkWebsite = new SqlParameter();
-                        checkWebsite.ParameterName = "@Website";
-                        if (dd.data[0] == "")
-                            checkWebsite.Value = DBNull.Value;
+                        MySqlParameter checkDealSite = new MySqlParameter();
+                        checkDealSite.ParameterName = "@DealSite";
+                        if (dd.data[49] == "")
+                            checkDealSite.Value = DBNull.Value;
                         else
-                            checkWebsite.Value = dd.data[0];
-                        myCommandChecker1.Parameters.Add(checkWebsite);
+                            checkDealSite.Value = dd.data[49];
+                        myCommandChecker1.Parameters.Add(checkDealSite);
                         
-                        SqlParameter checkDealID = new SqlParameter();
+                        MySqlParameter checkDealID = new MySqlParameter();
                         checkDealID.ParameterName = "@DealID";
                         if (dd.data[4] == "")
                             checkDealID.Value = DBNull.Value;
@@ -3036,7 +2921,7 @@ namespace PlayingWithCsharp
                             checkDealID.Value = dd.data[4];
                         myCommandChecker1.Parameters.Add(checkDealID);
 
-                        using (SqlDataReader myChecker1 = myCommandChecker1.ExecuteReader())
+                        using (MySqlDataReader myChecker1 = myCommandChecker1.ExecuteReader())
                         {
                             if (myChecker1.HasRows)
                             {
@@ -3051,21 +2936,21 @@ namespace PlayingWithCsharp
                     if (!inList)
                     {
                         if (dd.data[34] == "false")
-                            query = "SELECT DealsList.Website, DealsList.DealID, DealValid, DealsList.ExpiryTime FROM DealsList, OtherData WHERE DealsList.Website = OtherData.Website AND DealsList.DealID = OtherData.DealID AND DealsList.Website = @Website AND DealsList.DealID = @DealID";
+                            query = "SELECT DealsList.DealSite, DealsList.DealID, DealValid, DealsList.ExpiryTime FROM DealsList, OtherData WHERE DealsList.DealSite = OtherData.DealSite AND DealsList.DealID = OtherData.DealID AND DealsList.DealSite = @DealSite AND DealsList.DealID = @DealID";
                         else
-                            query = "SELECT DealsEnded.Website, DealsEnded.DealID, DealValid, DealsEnded.ExpiryTime FROM DealsEnded, OtherData WHERE DealsEnded.Website = OtherData.Website AND DealsEnded.DealID = OtherData.DealID AND DealsEnded.Website = @Website AND DealsEnded.DealID = @DealID";
+                            query = "SELECT DealsEnded.DealSite, DealsEnded.DealID, DealValid, DealsEnded.ExpiryTime FROM DealsEnded, OtherData WHERE DealsEnded.DealSite = OtherData.DealSite AND DealsEnded.DealID = OtherData.DealID AND DealsEnded.DealSite = @DealSite AND DealsEnded.DealID = @DealID";
 
-                        using (SqlCommand myCommandChecker2 = new SqlCommand(query, myConnection))
+                        using (MySqlCommand myCommandChecker2 = new MySqlCommand(query, myConnection))
                         {
-                            SqlParameter checkWebsite = new SqlParameter();
-                            checkWebsite.ParameterName = "@Website";
-                            if (dd.data[0] == "")
-                                checkWebsite.Value = DBNull.Value;
+                            MySqlParameter checkDealSite = new MySqlParameter();
+                            checkDealSite.ParameterName = "@DealSite";
+                            if (dd.data[49] == "")
+                                checkDealSite.Value = DBNull.Value;
                             else
-                                checkWebsite.Value = dd.data[0];
-                            myCommandChecker2.Parameters.Add(checkWebsite);
+                                checkDealSite.Value = dd.data[49];
+                            myCommandChecker2.Parameters.Add(checkDealSite);
                         
-                            SqlParameter checkDealID = new SqlParameter();
+                            MySqlParameter checkDealID = new MySqlParameter();
                             checkDealID.ParameterName = "@DealID";
                             if (dd.data[4] == "")
                                 checkDealID.Value = DBNull.Value;
@@ -3073,7 +2958,7 @@ namespace PlayingWithCsharp
                                 checkDealID.Value = dd.data[4];
                             myCommandChecker2.Parameters.Add(checkDealID);
 
-                            using (SqlDataReader myChecker2 = myCommandChecker2.ExecuteReader())
+                            using (MySqlDataReader myChecker2 = myCommandChecker2.ExecuteReader())
                             {
                                 if (myChecker2.HasRows)
                                 {
@@ -3093,48 +2978,48 @@ namespace PlayingWithCsharp
                             if (dd.data[34] == "false")
                             {
                                 if (dd.data[29] != "")
-                                    myCommandDeal = new SqlCommand("UPDATE DealsEnded SET DealLinkURL = @DealLinkURL, Category = @Category, Image = @Image, Description = @Description, DealerID = @DealerID, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, PayOutAmount = @PayOutAmount, PayOutLink = @PayOutLink, ExpiryTime = @ExpiryTime, MaxNumberVouchers = @MaxNumberOfVouchers, MinNumberVouchers = @MinNumberOfVouchers, PaidVoucherCount = @PaidVoucherCount, DealExtractedTime = @DealExtractedTime, Highlights = @Highlights, BuyDetails = @BuyDetails, DealText = @DealText, Reviews = @Reviews, DealSite = @DealSite, Currency = @Currency WHERE Website = @Website AND DealID = @DealID", myConnection);
+                                    myCommandDeal = new MySqlCommand("UPDATE DealsEnded SET DealLinkURL = @DealLinkURL, Category = @Category, Image = @Image, Description = @Description, DealerID = @DealerID, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, PayOutAmount = @PayOutAmount, PayOutLink = @PayOutLink, ExpiryTime = @ExpiryTime, MaxNumberVouchers = @MaxNumberOfVouchers, MinNumberVouchers = @MinNumberOfVouchers, PaidVoucherCount = @PaidVoucherCount, DealExtractedTime = @DealExtractedTime, Highlights = @Highlights, BuyDetails = @BuyDetails, DealText = @DealText, Reviews = @Reviews, Website = @Website, Currency = @Currency WHERE DealSite = @DealSite AND DealID = @DealID", myConnection);
                                 else
-                                    myCommandDeal = new SqlCommand("UPDATE DealsEnded SET DealLinkURL = @DealLinkURL, Category = @Category, Image = @Image, Description = @Description, DealerID = @DealerID, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, PayOutAmount = @PayOutAmount, PayOutLink = @PayOutLink, MaxNumberVouchers = @MaxNumberOfVouchers, MinNumberVouchers = @MinNumberOfVouchers, PaidVoucherCount = @PaidVoucherCount, DealExtractedTime = @DealExtractedTime, Highlights = @Highlights, BuyDetails = @BuyDetails, DealText = @DealText, Reviews = @Reviews, DealSite = @DealSite, Currency = @Currency WHERE Website = @Website AND DealID = @DealID", myConnection);
-                                myCommandOtherData = new SqlCommand("UPDATE OtherData SET ListOfCities = @ListOfCities, SideDeals = @SideDeals, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, SecondsTotal = @SecondsTotal, SecondsElapsed = @SecondsElapsed, RemainingTime = @RemainingTime, ExpiryTime = @ExpiryTime, DealSoldOut = @DealSoldOut, DealEnded = @DealEnded, DealValid = @DealValid, RelatedDeals = @RelatedDeals WHERE Website = @Website AND DealID = @DealID", myConnection);
+                                    myCommandDeal = new MySqlCommand("UPDATE DealsEnded SET DealLinkURL = @DealLinkURL, Category = @Category, Image = @Image, Description = @Description, DealerID = @DealerID, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, PayOutAmount = @PayOutAmount, PayOutLink = @PayOutLink, MaxNumberVouchers = @MaxNumberOfVouchers, MinNumberVouchers = @MinNumberOfVouchers, PaidVoucherCount = @PaidVoucherCount, DealExtractedTime = @DealExtractedTime, Highlights = @Highlights, BuyDetails = @BuyDetails, DealText = @DealText, Reviews = @Reviews, Website = @Website, Currency = @Currency WHERE DealSite = @DealSite AND DealID = @DealID", myConnection);
+                                myCommandOtherData = new MySqlCommand("UPDATE OtherData SET ListOfCities = @ListOfCities, SideDeals = @SideDeals, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, SecondsTotal = @SecondsTotal, SecondsElapsed = @SecondsElapsed, RemainingTime = @RemainingTime, ExpiryTime = @ExpiryTime, DealSoldOut = @DealSoldOut, DealEnded = @DealEnded, DealValid = @DealValid, RelatedDeals = @RelatedDeals, Website = @Website WHERE DealSite = @DealSite AND DealID = @DealID", myConnection);
                                 tempExpiryTime = "";
                             }
                             else if (dd.data[34] == "true")
                             {
-                                myCommandDeal = new SqlCommand("UPDATE DealsList SET DealLinkURL = @DealLinkURL, Category = @Category, Image = @Image, Description = @Description, DealerID = @DealerID, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, PayOutAmount = @PayOutAmount, PayOutLink = @PayOutLink, ExpiryTime = @ExpiryTime, MaxNumberVouchers = @MaxNumberOfVouchers, MinNumberVouchers = @MinNumberOfVouchers, PaidVoucherCount = @PaidVoucherCount, DealExtractedTime = @DealExtractedTime, Highlights = @Highlights, BuyDetails = @BuyDetails, DealText = @DealText, Reviews = @Reviews, DealSite = @DealSite, Currency = @Currency WHERE Website = @Website AND DealID = @DealID", myConnection);
-                                myCommandOtherData = new SqlCommand("UPDATE OtherData SET ListOfCities = @ListOfCities, SideDeals = @SideDeals, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, SecondsTotal = @SecondsTotal, SecondsElapsed = @SecondsElapsed, RemainingTime = @RemainingTime, ExpiryTime = @ExpiryTime, DealSoldOut = @DealSoldOut, DealEnded = @DealEnded, DealValid = @DealValid, RelatedDeals = @RelatedDeals WHERE Website = @Website AND DealID = @DealID", myConnection);
+                                myCommandDeal = new MySqlCommand("UPDATE DealsList SET DealLinkURL = @DealLinkURL, Category = @Category, Image = @Image, Description = @Description, DealerID = @DealerID, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, PayOutAmount = @PayOutAmount, PayOutLink = @PayOutLink, ExpiryTime = @ExpiryTime, MaxNumberVouchers = @MaxNumberOfVouchers, MinNumberVouchers = @MinNumberOfVouchers, PaidVoucherCount = @PaidVoucherCount, DealExtractedTime = @DealExtractedTime, Highlights = @Highlights, BuyDetails = @BuyDetails, DealText = @DealText, Reviews = @Reviews, Website = @Website, Currency = @Currency WHERE DealSite = @DealSite AND DealID = @DealID", myConnection);
+                                myCommandOtherData = new MySqlCommand("UPDATE OtherData SET ListOfCities = @ListOfCities, SideDeals = @SideDeals, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, SecondsTotal = @SecondsTotal, SecondsElapsed = @SecondsElapsed, RemainingTime = @RemainingTime, ExpiryTime = @ExpiryTime, DealSoldOut = @DealSoldOut, DealEnded = @DealEnded, DealValid = @DealValid, RelatedDeals = @RelatedDeals, Website = @Website WHERE DealSite = @DealSite AND DealID = @DealID", myConnection);
                                 tempExpiryTime = "";
                             }
                         }
                         else
                         {
-                            SqlCommand DeleteDeal = null;
+                            MySqlCommand DeleteDeal = null;
                             if (dd.data[34] == "false")
                             {
                                 // dont simply change tempExpiryTime. If it has a value, that should be used in place of the extracted one, in case the extracted one is NULL
                                 if (dd.data[29] != "")
                                     tempExpiryTime = "";
-                                myCommandDeal = new SqlCommand("INSERT INTO DealsEnded (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) Values (@Website, @DealID, @DealLinkURL, @Category, @Image, @Description, @DealerID, @RegularPrice, @OurPrice, @Saved, @Discount, @PayOutAmount, @PayOutLink, @ExpiryTime, @MaxNumberOfVouchers, @MinNumberOfVouchers, @PaidVoucherCount, @DealExtractedTime, @Highlights, @BuyDetails, @DealText, @Reviews, @DealSite, @Currency)", myConnection);
-                                myCommandOtherData = new SqlCommand("UPDATE OtherData SET ListOfCities = @ListOfCities, SideDeals = @SideDeals, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, SecondsTotal = @SecondsTotal, SecondsElapsed = @SecondsElapsed, RemainingTime = @RemainingTime, ExpiryTime = @ExpiryTime, DealSoldOut = @DealSoldOut, DealEnded = @DealEnded, DealValid = @DealValid, RelatedDeals = @RelatedDeals WHERE Website = @Website AND DealID = @DealID", myConnection);
-                                DeleteDeal = new SqlCommand("DELETE FROM DealsList WHERE Website = @Website AND DealID = @DealID", myConnection);
+                                myCommandDeal = new MySqlCommand("INSERT INTO DealsEnded (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) Values (@Website, @DealID, @DealLinkURL, @Category, @Image, @Description, @DealerID, @RegularPrice, @OurPrice, @Saved, @Discount, @PayOutAmount, @PayOutLink, @ExpiryTime, @MaxNumberOfVouchers, @MinNumberOfVouchers, @PaidVoucherCount, @DealExtractedTime, @Highlights, @BuyDetails, @DealText, @Reviews, @DealSite, @Currency)", myConnection);
+                                myCommandOtherData = new MySqlCommand("UPDATE OtherData SET ListOfCities = @ListOfCities, SideDeals = @SideDeals, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, SecondsTotal = @SecondsTotal, SecondsElapsed = @SecondsElapsed, RemainingTime = @RemainingTime, ExpiryTime = @ExpiryTime, DealSoldOut = @DealSoldOut, DealEnded = @DealEnded, DealValid = @DealValid, RelatedDeals = @RelatedDeals, Website = @Website WHERE DealSite = @DealSite AND DealID = @DealID", myConnection);
+                                DeleteDeal = new MySqlCommand("DELETE FROM DealsList WHERE DealSite = @DealSite AND DealID = @DealID", myConnection);
                             }
                             else
                             {
-                                myCommandDeal = new SqlCommand("INSERT INTO DealsList (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) Values (@Website, @DealID, @DealLinkURL, @Category, @Image, @Description, @DealerID, @RegularPrice, @OurPrice, @Saved, @Discount, @PayOutAmount, @PayOutLink, @ExpiryTime, @MaxNumberOfVouchers, @MinNumberOfVouchers, @PaidVoucherCount, @DealExtractedTime, @Highlights, @BuyDetails, @DealText, @Reviews, @DealSite, @Currency)", myConnection);
-                                myCommandOtherData = new SqlCommand("UPDATE OtherData SET ListOfCities = @ListOfCities, SideDeals = @SideDeals, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, SecondsTotal = @SecondsTotal, SecondsElapsed = @SecondsElapsed, RemainingTime = @RemainingTime, ExpiryTime = @ExpiryTime, DealSoldOut = @DealSoldOut, DealEnded = @DealEnded, DealValid = @DealValid, RelatedDeals = @RelatedDeals WHERE Website = @Website AND DealID = @DealID", myConnection);
-                                DeleteDeal = new SqlCommand("DELETE FROM DealsEnded WHERE Website = @Website AND DealID = @DealID", myConnection);
+                                myCommandDeal = new MySqlCommand("INSERT INTO DealsList (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) Values (@Website, @DealID, @DealLinkURL, @Category, @Image, @Description, @DealerID, @RegularPrice, @OurPrice, @Saved, @Discount, @PayOutAmount, @PayOutLink, @ExpiryTime, @MaxNumberOfVouchers, @MinNumberOfVouchers, @PaidVoucherCount, @DealExtractedTime, @Highlights, @BuyDetails, @DealText, @Reviews, @DealSite, @Currency)", myConnection);
+                                myCommandOtherData = new MySqlCommand("UPDATE OtherData SET ListOfCities = @ListOfCities, SideDeals = @SideDeals, RegularPrice = @RegularPrice, OurPrice = @OurPrice, Saved = @Saved, Discount = @Discount, SecondsTotal = @SecondsTotal, SecondsElapsed = @SecondsElapsed, RemainingTime = @RemainingTime, ExpiryTime = @ExpiryTime, DealSoldOut = @DealSoldOut, DealEnded = @DealEnded, DealValid = @DealValid, RelatedDeals = @RelatedDeals, Website = @Website WHERE DealSite = @DealSite AND DealID = @DealID", myConnection);
+                                DeleteDeal = new MySqlCommand("DELETE FROM DealsEnded WHERE DealSite = @DealSite AND DealID = @DealID", myConnection);
                                 tempExpiryTime = "";
                             }
 
-                            SqlParameter checkWebsite = new SqlParameter();
-                            checkWebsite.ParameterName = "@Website";
-                            if (dd.data[0] == "")
-                                checkWebsite.Value = DBNull.Value;
+                            MySqlParameter checkDealSite = new MySqlParameter();
+                            checkDealSite.ParameterName = "@DealSite";
+                            if (dd.data[49] == "")
+                                checkDealSite.Value = DBNull.Value;
                             else
-                                checkWebsite.Value = dd.data[0];
-                            DeleteDeal.Parameters.Add(checkWebsite);
+                                checkDealSite.Value = dd.data[49];
+                            DeleteDeal.Parameters.Add(checkDealSite);
                         
-                            SqlParameter checkDealID = new SqlParameter();
+                            MySqlParameter checkDealID = new MySqlParameter();
                             checkDealID.ParameterName = "@DealID";
                             if (dd.data[4] == "")
                                 checkDealID.Value = DBNull.Value;
@@ -3150,14 +3035,14 @@ namespace PlayingWithCsharp
                         if (dd.data[34] == "false")
                         {
 //                            tempExpiryTime = ""; IF inList =- False tempExpiryTime is already ""
-                            myCommandDeal = new SqlCommand("INSERT INTO DealsEnded (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) Values (@Website, @DealID, @DealLinkURL, @Category, @Image, @Description, @DealerID, @RegularPrice, @OurPrice, @Saved, @Discount, @PayOutAmount, @PayOutLink, @ExpiryTime, @MaxNumberOfVouchers, @MinNumberOfVouchers, @PaidVoucherCount, @DealExtractedTime, @Highlights, @BuyDetails, @DealText, @Reviews, @DealSite, @Currency)", myConnection);
-                            myCommandOtherData = new SqlCommand("INSERT INTO OtherData (Website, DealID, ListOfCities, SideDeals, RegularPrice, OurPrice, Saved, Discount, SecondsTotal, SecondsElapsed, RemainingTime, ExpiryTime, DealSoldOut, DealEnded, DealValid, RelatedDeals) Values (@Website, @DealID, @ListOfCities, @SideDeals, @RegularPrice, @OurPrice, @Saved, @Discount, @SecondsTotal, @SecondsElapsed, @RemainingTime, @ExpiryTime, @DealSoldOut, @DealEnded, @DealValid, @RelatedDeals)", myConnection);
+                            myCommandDeal = new MySqlCommand("INSERT INTO DealsEnded (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) Values (@Website, @DealID, @DealLinkURL, @Category, @Image, @Description, @DealerID, @RegularPrice, @OurPrice, @Saved, @Discount, @PayOutAmount, @PayOutLink, @ExpiryTime, @MaxNumberOfVouchers, @MinNumberOfVouchers, @PaidVoucherCount, @DealExtractedTime, @Highlights, @BuyDetails, @DealText, @Reviews, @DealSite, @Currency)", myConnection);
+                            myCommandOtherData = new MySqlCommand("INSERT INTO OtherData (Website, DealID, ListOfCities, SideDeals, RegularPrice, OurPrice, Saved, Discount, SecondsTotal, SecondsElapsed, RemainingTime, ExpiryTime, DealSoldOut, DealEnded, DealValid, RelatedDeals, DealSite) Values (@Website, @DealID, @ListOfCities, @SideDeals, @RegularPrice, @OurPrice, @Saved, @Discount, @SecondsTotal, @SecondsElapsed, @RemainingTime, @ExpiryTime, @DealSoldOut, @DealEnded, @DealValid, @RelatedDeals, @DealSite)", myConnection);
                         }
                         else
                         {
 //                            tempExpiryTime = ""; IF inList =- False tempExpiryTime is already ""
-                            myCommandDeal = new SqlCommand("INSERT INTO DealsList (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) Values (@Website, @DealID, @DealLinkURL, @Category, @Image, @Description, @DealerID, @RegularPrice, @OurPrice, @Saved, @Discount, @PayOutAmount, @PayOutLink, @ExpiryTime, @MaxNumberOfVouchers, @MinNumberOfVouchers, @PaidVoucherCount, @DealExtractedTime, @Highlights, @BuyDetails, @DealText, @Reviews, @DealSite, @Currency)", myConnection);
-                            myCommandOtherData = new SqlCommand("INSERT INTO OtherData (Website, DealID, ListOfCities, SideDeals, RegularPrice, OurPrice, Saved, Discount, SecondsTotal, SecondsElapsed, RemainingTime, ExpiryTime, DealSoldOut, DealEnded, DealValid, RelatedDeals) Values (@Website, @DealID, @ListOfCities, @SideDeals, @RegularPrice, @OurPrice, @Saved, @Discount, @SecondsTotal, @SecondsElapsed, @RemainingTime, @ExpiryTime, @DealSoldOut, @DealEnded, @DealValid, @RelatedDeals)", myConnection);
+                            myCommandDeal = new MySqlCommand("INSERT INTO DealsList (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) Values (@Website, @DealID, @DealLinkURL, @Category, @Image, @Description, @DealerID, @RegularPrice, @OurPrice, @Saved, @Discount, @PayOutAmount, @PayOutLink, @ExpiryTime, @MaxNumberOfVouchers, @MinNumberOfVouchers, @PaidVoucherCount, @DealExtractedTime, @Highlights, @BuyDetails, @DealText, @Reviews, @DealSite, @Currency)", myConnection);
+                            myCommandOtherData = new MySqlCommand("INSERT INTO OtherData (Website, DealID, ListOfCities, SideDeals, RegularPrice, OurPrice, Saved, Discount, SecondsTotal, SecondsElapsed, RemainingTime, ExpiryTime, DealSoldOut, DealEnded, DealValid, RelatedDeals, DealSite) Values (@Website, @DealID, @ListOfCities, @SideDeals, @RegularPrice, @OurPrice, @Saved, @Discount, @SecondsTotal, @SecondsElapsed, @RemainingTime, @ExpiryTime, @DealSoldOut, @DealEnded, @DealValid, @RelatedDeals, @DealSite)", myConnection);
                         }
                     }
                 }
@@ -3166,14 +3051,14 @@ namespace PlayingWithCsharp
                     Console.WriteLine(e.ToString());
                 }
 
-                SqlParameter p41 = new SqlParameter();
+                MySqlParameter p41 = new MySqlParameter();
                 p41.ParameterName = "@DealerID";
                 p41.Value = getDealerID(dd.data, myConnection, writer, ref AtTheEnd, locations);
                 if (p41.Value.ToString() == "")
                     p41.Value = DBNull.Value;
                 myCommandDeal.Parameters.Add(p41);
                 
-                SqlParameter p1 = new SqlParameter();
+                MySqlParameter p1 = new MySqlParameter();
                 p1.ParameterName = "@Website";
                 if (dd.data[0] == "")
                     p1.Value = DBNull.Value;
@@ -3181,7 +3066,7 @@ namespace PlayingWithCsharp
                     p1.Value = dd.data[0];
                 myCommandDeal.Parameters.Add(p1);
                 
-                SqlParameter p2 = new SqlParameter();
+                MySqlParameter p2 = new MySqlParameter();
                 p2.ParameterName = "@DealID";
                 if (dd.data[4] == "")
                     p2.Value = DBNull.Value;
@@ -3189,7 +3074,7 @@ namespace PlayingWithCsharp
                     p2.Value = dd.data[4];
                 myCommandDeal.Parameters.Add(p2);
 
-                SqlParameter p3 = new SqlParameter();
+                MySqlParameter p3 = new MySqlParameter();
                 p3.ParameterName = "@DealLinkURL";
                 if (dd.data[5] == "")
                     p3.Value = DBNull.Value;
@@ -3197,7 +3082,7 @@ namespace PlayingWithCsharp
                     p3.Value = dd.data[5];
                 myCommandDeal.Parameters.Add(p3);
 
-                SqlParameter p4 = new SqlParameter();
+                MySqlParameter p4 = new MySqlParameter();
                 p4.ParameterName = "@Category";
                 if (dd.data[6] == "")
                     p4.Value = DBNull.Value;
@@ -3205,7 +3090,7 @@ namespace PlayingWithCsharp
                    p4.Value = dd.data[6];
                 myCommandDeal.Parameters.Add(p4);
 
-                SqlParameter p7 = new SqlParameter();
+                MySqlParameter p7 = new MySqlParameter();
                 p7.ParameterName = "@Image";
                 if (dd.data[9] == "")
                     p7.Value = DBNull.Value;
@@ -3213,7 +3098,7 @@ namespace PlayingWithCsharp
                     p7.Value = dd.data[9];
                 myCommandDeal.Parameters.Add(p7);
 
-                SqlParameter p8 = new SqlParameter();
+                MySqlParameter p8 = new MySqlParameter();
                 p8.ParameterName = "@Description";
                 if (dd.data[10] == "")
                     p8.Value = DBNull.Value;
@@ -3221,7 +3106,7 @@ namespace PlayingWithCsharp
                     p8.Value = dd.data[10];
                 myCommandDeal.Parameters.Add(p8);
 
-                SqlParameter p18 = new SqlParameter();
+                MySqlParameter p18 = new MySqlParameter();
                 p18.ParameterName = "@RegularPrice";
                 if (dd.data[20] == "")
                     p18.Value = DBNull.Value;
@@ -3229,7 +3114,7 @@ namespace PlayingWithCsharp
                     p18.Value = decimal.Parse(dd.data[20]);
                 myCommandDeal.Parameters.Add(p18);
 
-                SqlParameter p19 = new SqlParameter();
+                MySqlParameter p19 = new MySqlParameter();
                 p19.ParameterName = "@OurPrice";
                 if (dd.data[21] == "")
                     p19.Value = DBNull.Value;
@@ -3237,7 +3122,7 @@ namespace PlayingWithCsharp
                     p19.Value = decimal.Parse(dd.data[21]);
                 myCommandDeal.Parameters.Add(p19);
 
-                SqlParameter p20 = new SqlParameter();
+                MySqlParameter p20 = new MySqlParameter();
                 p20.ParameterName = "@Saved";
                 if (dd.data[22] == "")
                     p20.Value = DBNull.Value;
@@ -3245,7 +3130,7 @@ namespace PlayingWithCsharp
                     p20.Value = decimal.Parse(dd.data[22]);
                 myCommandDeal.Parameters.Add(p20);
 
-                SqlParameter p21 = new SqlParameter();
+                MySqlParameter p21 = new MySqlParameter();
                 p21.ParameterName = "@Discount";
                 if (dd.data[23] == "")
                     p21.Value = DBNull.Value;
@@ -3253,7 +3138,7 @@ namespace PlayingWithCsharp
                     p21.Value = decimal.Parse(dd.data[23]);
                 myCommandDeal.Parameters.Add(p21);
 
-                SqlParameter p22 = new SqlParameter();
+                MySqlParameter p22 = new MySqlParameter();
                 p22.ParameterName = "@PayOutAmount";
                 if (dd.data[24] == "")
                     p22.Value = DBNull.Value;
@@ -3261,7 +3146,7 @@ namespace PlayingWithCsharp
                     p22.Value = decimal.Parse(dd.data[24]);
                 myCommandDeal.Parameters.Add(p22);
 
-                SqlParameter p23 = new SqlParameter();
+                MySqlParameter p23 = new MySqlParameter();
                 p23.ParameterName = "@PayOutLink";
                 if (dd.data[25] == "")
                 {
@@ -3274,20 +3159,20 @@ namespace PlayingWithCsharp
                     p23.Value = dd.data[25];
                 myCommandDeal.Parameters.Add(p23);
 
-                SqlParameter p27 = new SqlParameter();
+                MySqlParameter p27 = new MySqlParameter();
                 p27.ParameterName = "@ExpiryTime";
                 if (tempExpiryTime != "")
-                    p27.Value = DateTimeOffset.Parse(tempExpiryTime);
+                    p27.Value = DateTime.Parse(tempExpiryTime);
                 else
                 {
                     if (dd.data[29] == "")
                         p27.Value = DBNull.Value;
                     else
-                        p27.Value = DateTimeOffset.Parse(dd.data[29]);
+                        p27.Value = DateTime.Parse(dd.data[29]);
                 }
                 myCommandDeal.Parameters.Add(p27);
 
-                SqlParameter p28 = new SqlParameter();
+                MySqlParameter p28 = new MySqlParameter();
                 p28.ParameterName = "@MaxNumberOfVouchers";
                 if (dd.data[30] == "")
                     p28.Value = DBNull.Value;
@@ -3295,7 +3180,7 @@ namespace PlayingWithCsharp
                     p28.Value = Convert.ToInt32(dd.data[30]);
                 myCommandDeal.Parameters.Add(p28);
 
-                SqlParameter p29 = new SqlParameter();
+                MySqlParameter p29 = new MySqlParameter();
                 p29.ParameterName = "@MinNumberOfVouchers";
                 if (dd.data[31] == "")
                     p29.Value = DBNull.Value;
@@ -3303,7 +3188,7 @@ namespace PlayingWithCsharp
                     p29.Value = Convert.ToInt32(dd.data[31]);
                 myCommandDeal.Parameters.Add(p29);
 
-                SqlParameter p31 = new SqlParameter();
+                MySqlParameter p31 = new MySqlParameter();
                 p31.ParameterName = "@PaidVoucherCount";
                 if (dd.data[35] == "")
                     p31.Value = DBNull.Value;
@@ -3311,7 +3196,7 @@ namespace PlayingWithCsharp
                     p31.Value = Convert.ToInt32(dd.data[35]);
                 myCommandDeal.Parameters.Add(p31);
 
-                SqlParameter p32 = new SqlParameter();
+                MySqlParameter p32 = new MySqlParameter();
                 p32.ParameterName = "@Highlights";
                 if (dd.data[36] == "")
                     p32.Value = DBNull.Value;
@@ -3319,7 +3204,7 @@ namespace PlayingWithCsharp
                     p32.Value = dd.data[36];
                 myCommandDeal.Parameters.Add(p32);
 
-                SqlParameter p33 = new SqlParameter();
+                MySqlParameter p33 = new MySqlParameter();
                 p33.ParameterName = "@BuyDetails";
                 if (dd.data[37] == "")
                     p33.Value = DBNull.Value;
@@ -3327,7 +3212,7 @@ namespace PlayingWithCsharp
                     p33.Value = dd.data[37];
                 myCommandDeal.Parameters.Add(p33);
 
-                SqlParameter p34 = new SqlParameter();
+                MySqlParameter p34 = new MySqlParameter();
                 p34.ParameterName = "@DealText";
                 if (dd.data[38] == "")
                     p34.Value = DBNull.Value;
@@ -3335,7 +3220,7 @@ namespace PlayingWithCsharp
                     p34.Value = dd.data[38];
                 myCommandDeal.Parameters.Add(p34);
 
-                SqlParameter p35 = new SqlParameter();
+                MySqlParameter p35 = new MySqlParameter();
                 p35.ParameterName = "@Reviews";
                 if (dd.data[39] == "")
                     p35.Value = DBNull.Value;
@@ -3343,12 +3228,12 @@ namespace PlayingWithCsharp
                     p35.Value = dd.data[39];
                 myCommandDeal.Parameters.Add(p35);
 
-                SqlParameter p42 = new SqlParameter();
+                MySqlParameter p42 = new MySqlParameter();
                 p42.ParameterName = "@DealExtractedTime";
-                p42.Value = DateTimeOffset.Parse(dd.data[1]);
+                p42.Value = DateTime.Parse(dd.data[1]);
                 myCommandDeal.Parameters.Add(p42);
 
-                SqlParameter p43 = new SqlParameter();
+                MySqlParameter p43 = new MySqlParameter();
                 p43.ParameterName = "@DealSite";
                 if (dd.data[49] == "")
                     p43.Value = DBNull.Value;
@@ -3356,7 +3241,7 @@ namespace PlayingWithCsharp
                     p43.Value = dd.data[49];
                 myCommandDeal.Parameters.Add(p43);
 
-                SqlParameter p44 = new SqlParameter();
+                MySqlParameter p44 = new MySqlParameter();
                 p44.ParameterName = "@Currency";
                 if (dd.data[46] == "")
                     p44.Value = DBNull.Value;
@@ -3364,7 +3249,7 @@ namespace PlayingWithCsharp
                     p44.Value = dd.data[46];
                 myCommandDeal.Parameters.Add(p44);
 
-                SqlParameter p1a = new SqlParameter();
+                MySqlParameter p1a = new MySqlParameter();
                 p1a.ParameterName = "@Website";
                 if (dd.data[0] == "")
                     p1a.Value = DBNull.Value;
@@ -3372,7 +3257,7 @@ namespace PlayingWithCsharp
                     p1a.Value = dd.data[0];
                 myCommandOtherData.Parameters.Add(p1a);
 
-                SqlParameter p2a = new SqlParameter();
+                MySqlParameter p2a = new MySqlParameter();
                 p2a.ParameterName = "@DealID";
                 if (dd.data[4] == "")
                     p2a.Value = DBNull.Value;
@@ -3380,7 +3265,7 @@ namespace PlayingWithCsharp
                     p2a.Value = dd.data[4];
                 myCommandOtherData.Parameters.Add(p2a);
 
-                SqlParameter p18a = new SqlParameter();
+                MySqlParameter p18a = new MySqlParameter();
                 p18a.ParameterName = "@RegularPrice";
                 if (dd.data[20] == "")
                     p18a.Value = DBNull.Value;
@@ -3388,7 +3273,7 @@ namespace PlayingWithCsharp
                     p18a.Value = decimal.Parse(dd.data[20]);
                 myCommandOtherData.Parameters.Add(p18a);
 
-                SqlParameter p19a = new SqlParameter();
+                MySqlParameter p19a = new MySqlParameter();
                 p19a.ParameterName = "@OurPrice";
                 if (dd.data[21] == "")
                     p19a.Value = DBNull.Value;
@@ -3396,7 +3281,7 @@ namespace PlayingWithCsharp
                     p19a.Value = decimal.Parse(dd.data[21]);
                 myCommandOtherData.Parameters.Add(p19a);
 
-                SqlParameter p20a = new SqlParameter();
+                MySqlParameter p20a = new MySqlParameter();
                 p20a.ParameterName = "@Saved";
                 if (dd.data[22] == "")
                     p20a.Value = DBNull.Value;
@@ -3404,7 +3289,7 @@ namespace PlayingWithCsharp
                     p20a.Value = decimal.Parse(dd.data[22]);
                 myCommandOtherData.Parameters.Add(p20a);
 
-                SqlParameter p21a = new SqlParameter();
+                MySqlParameter p21a = new MySqlParameter();
                 p21a.ParameterName = "@Discount";
                 if (dd.data[23] == "")
                     p21a.Value = DBNull.Value;
@@ -3412,7 +3297,7 @@ namespace PlayingWithCsharp
                     p21a.Value = decimal.Parse(dd.data[23]);
                 myCommandOtherData.Parameters.Add(p21a);
 
-                SqlParameter p24 = new SqlParameter();
+                MySqlParameter p24 = new MySqlParameter();
                 p24.ParameterName = "@SecondsTotal";
                 if (dd.data[26] == "")
                     p24.Value = DBNull.Value;
@@ -3420,7 +3305,7 @@ namespace PlayingWithCsharp
                     p24.Value = dd.data[26];
                 myCommandOtherData.Parameters.Add(p24);
 
-                SqlParameter p25 = new SqlParameter();
+                MySqlParameter p25 = new MySqlParameter();
                 p25.ParameterName = "@SecondsElapsed";
                 if (dd.data[27] == "")
                     p25.Value = DBNull.Value;
@@ -3428,7 +3313,7 @@ namespace PlayingWithCsharp
                     p25.Value = dd.data[27];
                 myCommandOtherData.Parameters.Add(p25);
 
-                SqlParameter p26 = new SqlParameter();
+                MySqlParameter p26 = new MySqlParameter();
                 p26.ParameterName = "@RemainingTime";
                 if (dd.data[28] == "")
                     p26.Value = DBNull.Value;
@@ -3436,20 +3321,20 @@ namespace PlayingWithCsharp
                     p26.Value = dd.data[28];
                 myCommandOtherData.Parameters.Add(p26);
 
-                SqlParameter p27a = new SqlParameter();
+                MySqlParameter p27a = new MySqlParameter();
                 p27a.ParameterName = "@ExpiryTime";
                 if (tempExpiryTime != "")
-                    p27a.Value = DateTimeOffset.Parse(tempExpiryTime);
+                    p27a.Value = DateTime.Parse(tempExpiryTime);
                 else
                 {
                     if (dd.data[29] == "")
                         p27a.Value = DBNull.Value;
                     else
-                        p27a.Value = DateTimeOffset.Parse(dd.data[29]);
+                        p27a.Value = DateTime.Parse(dd.data[29]);
                 }
                 myCommandOtherData.Parameters.Add(p27a);
 
-                SqlParameter p30 = new SqlParameter();
+                MySqlParameter p30 = new MySqlParameter();
                 p30.ParameterName = "@DealValid";
                 if (dd.data[34] == "")
                     p30.Value = DBNull.Value;
@@ -3457,7 +3342,7 @@ namespace PlayingWithCsharp
                     p30.Value = dd.data[34];
                 myCommandOtherData.Parameters.Add(p30);
 
-                SqlParameter p36 = new SqlParameter();
+                MySqlParameter p36 = new MySqlParameter();
                 p36.ParameterName = "@ListOfCities";
                 if (dd.data[2] == "")
                     p36.Value = DBNull.Value;
@@ -3465,7 +3350,7 @@ namespace PlayingWithCsharp
                     p36.Value = dd.data[2];
                 myCommandOtherData.Parameters.Add(p36);
 
-                SqlParameter p37 = new SqlParameter();
+                MySqlParameter p37 = new MySqlParameter();
                 p37.ParameterName = "@SideDeals";
                 if (dd.data[3] == "")
                     p37.Value = DBNull.Value;
@@ -3473,7 +3358,7 @@ namespace PlayingWithCsharp
                     p37.Value = dd.data[3];
                 myCommandOtherData.Parameters.Add(p37);
 
-                SqlParameter p38 = new SqlParameter();
+                MySqlParameter p38 = new MySqlParameter();
                 p38.ParameterName = "@DealSoldOut";
                 if (dd.data[32] == "")
                     p38.Value = DBNull.Value;
@@ -3481,7 +3366,7 @@ namespace PlayingWithCsharp
                     p38.Value = dd.data[32];
                 myCommandOtherData.Parameters.Add(p38);
 
-                SqlParameter p39 = new SqlParameter();
+                MySqlParameter p39 = new MySqlParameter();
                 p39.ParameterName = "@DealEnded";
                 if (dd.data[33] == "")
                     p39.Value = DBNull.Value;
@@ -3489,13 +3374,21 @@ namespace PlayingWithCsharp
                     p39.Value = dd.data[33];
                 myCommandOtherData.Parameters.Add(p39);
 
-                SqlParameter p40 = new SqlParameter();
+                MySqlParameter p40 = new MySqlParameter();
                 p40.ParameterName = "@RelatedDeals";
                 if (dd.data[40] == "")
                     p40.Value = DBNull.Value;
                 else
                     p40.Value = dd.data[40];
                 myCommandOtherData.Parameters.Add(p40);
+
+                MySqlParameter p43a = new MySqlParameter();
+                p43a.ParameterName = "@DealSite";
+                if (dd.data[49] == "")
+                    p43a.Value = DBNull.Value;
+                else
+                    p43a.Value = dd.data[49];
+                myCommandOtherData.Parameters.Add(p43a);
 
                 myCommandDeal.ExecuteNonQuery();
                 myCommandOtherData.ExecuteNonQuery();
@@ -3543,6 +3436,8 @@ namespace PlayingWithCsharp
                 p = "Escape";
             else if (p.Contains("dream"))
                 p = "Incredible";
+            else if (p.Contains("adventure"))
+                p = "Adventure";
             else p = "";
         }
          
@@ -3618,7 +3513,7 @@ namespace PlayingWithCsharp
                 dd.data[17] = "Canada";
             else if ((country == "nouvelle-zélande") || (country == "nowa zelandia"))
                 dd.data[17] = "New Zealand";
-            else if ((country == "royaume-uni") || (country == "wielka brytania"))
+            else if ((country == "uk") || (country == "royaume-uni") || (country == "wielka brytania"))
                 dd.data[17] = "United Kingdom";
 
             if (dd.data[13] == "")
@@ -3671,7 +3566,7 @@ namespace PlayingWithCsharp
                 return locations;
             }
 
-            if (format == 1) // 1.	City, [province], street, Postal Code, [Contact] | Contact (EX: DealTicker)
+            if (format == 1) // 1.	City, [province], street, [Postal Code], [Contact] | Contact (EX: DealTicker)
             {
                 string fullAddress = dd.data[13];
                 string aux;
@@ -3690,6 +3585,7 @@ namespace PlayingWithCsharp
                         fullAddress = fullAddress.Remove(i);
 //                        RemoveSpaces(ref aux, true, true);
                         dealer_address.SetContact(aux);
+                        RemoveSpaces(ref fullAddress, true, true);
                     }
                     if (fullAddress.Length > 0)
                     {
@@ -3703,7 +3599,14 @@ namespace PlayingWithCsharp
                             dealer_address.SetCity(aux);
                         else
                         {
-                            dealer_address.SetPostalCode(aux);
+                            if (aux.Length <= 7)
+                            {
+                                dealer_address.SetPostalCode(aux);
+                            }
+                            else
+                            {
+                                fullAddress = fullAddress + ", " + aux;
+                            }
 
                             int b = fullAddress.LastIndexOf(';');
                             b += 1;
@@ -3719,7 +3622,7 @@ namespace PlayingWithCsharp
                             if (i == -1)
                                 i = 0;
                             aux = fullAddress.Substring(i, fullAddress.Length - i);
-                            fullAddress = fullAddress.Remove(i);
+                            fullAddress = fullAddress != "" ?fullAddress.Remove(i):"";
                             RemoveSpaces(ref aux, true, true);
 
                             i = aux.IndexOf(',');
@@ -3848,6 +3751,22 @@ namespace PlayingWithCsharp
                     RemoveSpaces(ref aux1, true, true);
                     fullAddress = fullAddress.Remove(0, i);
 
+                    i = aux1.IndexOf('(');
+                    string comments = "";
+                    while (i != -1)
+                    {
+                        int j = aux1.IndexOf(')', i + 1);
+                        if (j != -1)
+                        {
+                            comments = comments + aux1.Substring(i, j - i + 1);
+                            aux1 = aux1.Replace(comments, "");
+                        }
+                        else
+                            aux1 = aux1.Replace(aux1.Substring(i, aux1.Length - i), "");
+                        RemoveSpaces(ref aux1, true, true);
+                        i = aux1.IndexOf('(');
+                    }
+
                     got = GetAddressFromGoogleMaps(ref aux1, ref dealer_address, dd.data[5], ref timesCalled, ref timesGoogleMaps, dd.data[43]);
 
                     if (got)
@@ -3867,7 +3786,8 @@ namespace PlayingWithCsharp
                             aux1 = aux1.Remove(i);
                             RemoveSpaces(ref aux3, true, true);
 
-                            aux2 = aux3.Replace(" ", "");
+                            aux2 = aux3;
+                //            aux2 = aux2.Replace(" ", "");
                             aux2 = aux2.Replace("(", "");
                             aux2 = aux2.Replace(")", "");
                             aux2 = aux2.Replace("-", "");
@@ -3950,6 +3870,9 @@ namespace PlayingWithCsharp
                                 dealer_address.SetCountry(dd.data[17]);
                             if (dealer_address.GetProvince() == "")
                                 dealer_address.SetProvince(dd.data[43]);
+
+                            if (comments != "")
+                                dealer_address.SetStreetAddress(dealer_address.GetStreetAddress() + " " + comments);
                         }
                         locations.SetLocation(dealer_address);
                     }
@@ -5083,7 +5006,7 @@ namespace PlayingWithCsharp
                                 try
                                 {
                                     int test = Convert.ToInt32(aux2.Substring(0, 3));
-                                    if ((aux1[3] != '-') || (aux1[7] != '-'))
+                                    if (((aux1[3] != '-') || (aux1[7] != '-')) && (aux1.Substring(1, 3) != "800"))
                                         isPhone = false;
                                 }
                                 catch (FormatException)
@@ -5648,6 +5571,7 @@ namespace PlayingWithCsharp
         {
             dealer locations = new dealer();
             string alt_address = "";
+            int cont = 0;
             int i = address.IndexOf(')');
             if (i != -1)
             {
@@ -5658,8 +5582,9 @@ namespace PlayingWithCsharp
                     RemoveSpaces(ref address, true, true);
                 }
             }
-            if (address[0] == '#')
-                address = address.Remove(0, 1);
+            address = address.Replace("-;", ";");
+            if (address.Contains('#'))
+                address = address.Replace("#"," ");
             if (address.Contains(" Blvd"))
                 address = address.Replace(" Blvd", " Boulevard");
             string temp = address.ToLower();
@@ -5725,8 +5650,10 @@ namespace PlayingWithCsharp
             if (address != "")
             {
 
-                while (true)
+//                while (true)
+                while (cont < 15)
                 {
+                    cont += 1;
 
                     HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://maps.googleapis.com/maps/api/geocode/xml?address=" + address + "&sensor=false");
                     request.Accept = "Accept: text/html,application/xhtml+xml,application/xml";
@@ -5762,6 +5689,7 @@ namespace PlayingWithCsharp
                             address = orig;
                             i = formatted_address.LastIndexOf(',');
                             string country = formatted_address.Substring(i + 2, formatted_address.Length - (i + 2));
+
                             formatted_address = formatted_address.Remove(i);
 
                             i = formatted_address.LastIndexOf(',');
@@ -5817,41 +5745,52 @@ namespace PlayingWithCsharp
                                 return true;
                             }
                             loc.SetContact(address); // just to check, later, the right address. THis data will be, then, removed 
-                            locations.SetLocation(loc);
+                            if (address != orig)
+                                locations.SetLocation(loc);
                         }
                         catch
                         {
                             st = "";
                         }
                     }
-                    if (with_province != "")
+//                    if (with_province != "")
+                    if (cont % 5 == 1)
                     {
                         address = with_province;
-                        with_province = "";
+//                        with_province = "";
                     }
-                    if (alt_address != "")
+//                    if (alt_address != "")
+                    if (cont % 5 == 2)
                     {
                         address = alt_address;
-                        alt_address = "";
+//                        alt_address = "";
                     }
-                    else if (left_hifen != "")
+//                    else if (left_hifen != "")
+                    if (cont % 5 == 3)
                     {
                         address = left_hifen;
-                        left_hifen = "";
+//                        left_hifen = "";
                     }
-                    else if (right_hifen != "")
+//                    else if (right_hifen != "")
+                    if (cont % 5 == 4)
                     {
                         address = right_hifen;
-                        right_hifen = "";
+//                        right_hifen = "";
                     }
-                    else if (locations.CountLocations() == 0)
+                    if (cont % 5 == 0)
                     {
-                        Console.WriteLine("WARNING: Couldn't get location's address from GoogleMapsAPI for the address: " + address + " Dealsite: " + dealLinkUrl + "\n");
-                        AtTheEnd = AtTheEnd + "WARNING: Couldn't get location's address from GoogleMapsAPI for the address: " + address + " Dealsite: " + dealLinkUrl + "\n";
-                        return false;
+                        address = orig;
                     }
-                    else
+//                    else if (locations.CountLocations() == 0)
+//                    {
+//                        Console.WriteLine("WARNING: Couldn't get location's address from GoogleMapsAPI for the address: " + address + " Dealsite: " + dealLinkUrl + "\n");
+//                        AtTheEnd = AtTheEnd + "WARNING: Couldn't get location's address from GoogleMapsAPI for the address: " + address + " Dealsite: " + dealLinkUrl + "\n";
+//                        return false;
+//                    }
+                    if (cont % 5 == 0)
                     {
+                        if (locations.CountLocations() == 0)
+                            continue;
                         if (locations.CountLocations() == 1)
                         {
                             dealer_address = locations.getLocation(0);
@@ -5878,6 +5817,8 @@ namespace PlayingWithCsharp
                         return true;
                     }
                 }
+                Console.WriteLine("WARNING: Couldn't get location's address from GoogleMapsAPI for the address: " + address + " Dealsite: " + dealLinkUrl + "\n");
+                AtTheEnd = AtTheEnd + "WARNING: Couldn't get location's address from GoogleMapsAPI for the address: " + address + " Dealsite: " + dealLinkUrl + "\n";
             }
             return false;
         }
@@ -6305,7 +6246,7 @@ namespace PlayingWithCsharp
                     while (first != -1)
                     {
                         // there is an american city called Mobile.
-                        if (aux1.Substring(first, 7) != "Mobile,")
+                        if ((aux1.Length >= 7) && (aux1.Substring(first, 7) != "Mobile,"))
                         {
                             aux = aux.Remove(first, 6);
                             aux1 = aux1.Remove(first, 6);
@@ -6315,79 +6256,6 @@ namespace PlayingWithCsharp
                         else
                             first = -1;
                     }
-/*                    aux = aux.Replace("include photo", "");
-                    aux = aux.Replace("(map)", "");
-                    aux = aux.Replace("(carte)", "");
-                    aux = aux.Replace("phone and contact with:", "");
-                    aux = aux.Replace("domocilio conocido", "");
-                    aux = aux.Replace("on location shoot", "");
-                    aux = aux.Replace("call to order", "");
-                    aux = aux.Replace("to place your order", "");
-                    aux = aux.Replace("once purchased", "");
-                    aux = aux.Replace("mailed to your door", "");
-                    aux = aux.Replace("see website for directions", "");
-                    aux = aux.Replace("click website link to", "");
-                    aux = aux.Replace("to redeem voucher,", "");
-                    aux = aux.Replace("to redeem voucher", "");
-                    aux = aux.Replace("to redeem your voucher,", "");
-                    aux = aux.Replace("to redeem your voucher", "");
-                    aux = aux.Replace("to book your appointment", "");
-                    aux = aux.Replace("include photo", "");
-                    aux = aux.Replace("mailing address and contact number", "");
-                    aux = aux.Replace("please visit:", "");
-                    aux = aux.Replace("please visit", "");
-                    aux = aux.Replace("they come to you", "");
-                    aux = aux.Replace("for reservations", "");
-                    aux = aux.Replace("redeem online by clicking the \"redemption\" link on your voucher", "");
-                    aux = aux.Replace("Redeem online by clicking \"Redemption\" link on your voucher", "");
-                    aux = aux.Replace("online redemption:", "");
-                    aux = aux.Replace("online redemption", "");
-                    aux = aux.Replace("web redemption:", "");
-                    aux = aux.Replace("web redemption", "");
-                    aux = aux.Replace("or redeem", "");
-                    aux = aux.Replace("redeem", "");
-                    aux = aux.Replace("online at", "");
-                    aux = aux.Replace("online:", "");
-                    aux = aux.Replace("online", "");
-                    aux = aux.Replace("or by phone:", "");
-                    aux = aux.Replace("or by phone", "");
-                    aux = aux.Replace("by phone:", "");
-                    aux = aux.Replace("by phone", "");
-                    aux = aux.Replace("mobile service", "");
-                    aux = aux.Replace("mobile service:", "");
-                    aux = aux.Replace("gta mobile", "");
-                    aux = aux.Replace("mobile", "");
-                    aux = aux.Replace("call/email", "");
-                    aux = aux.Replace("or by email:", "");
-                    aux = aux.Replace("or by e-mail:", "");
-                    aux = aux.Replace("or by email", "");
-                    aux = aux.Replace("or by e-mail", "");
-                    aux = aux.Replace("by emailing:", "");
-                    aux = aux.Replace("by emailing", "");
-                    aux = aux.Replace("by email:", "");
-                    aux = aux.Replace("by email", "");
-                    aux = aux.Replace("by e-mail:", "");
-                    aux = aux.Replace("by e-mail", "");
-                    aux = aux.Replace("for inquiries,", "");
-                    aux = aux.Replace("for inquiries", "");
-                    aux = aux.Replace("please call:", "");
-                    aux = aux.Replace("please call", "");
-                    aux = aux.Replace("please", "");
-                    aux = aux.Replace("call:", "");
-                    aux = aux.Replace("call ", " ");
-                    aux = aux.Replace("call\n", "\n");
-                    aux = aux.Replace("or email:", "");
-                    aux = aux.Replace("or email", "");
-                    aux = aux.Replace("email:", "");
-                    aux = aux.Replace("email", "");
-                    aux = aux.Replace("or e-mail:", "");
-                    aux = aux.Replace("or e-mail", "");
-                    aux = aux.Replace("e-mail:", "");
-                    aux = aux.Replace("e-mail", "");
-                    aux = aux.Replace("multiple locations", "");
-                    aux = aux.Replace("valid at", "");
-                    aux = aux.Replace("view locations", "");
-                    aux = aux.Replace("mail out", "");*/
                     if (aux1 != dd.data[i])
                     {
                         if (i == 13)
@@ -6480,6 +6348,13 @@ namespace PlayingWithCsharp
                 dd.data[11] = "";
                 dd.data[12] = "";
                 if ((dd.data[18] != "") && (dd.data[18].IndexOf("51.") != -1))
+                    dd.data[18] = "";
+            }
+            if ((dd.data[11].Length >= 3) && (dd.data[11].Substring(0, 3) == "53.") && (dd.data[12].Length >= 5) && (dd.data[12].Substring(0, 4) == "-127."))
+            {
+                dd.data[11] = "";
+                dd.data[12] = "";
+                if ((dd.data[18] != "") && (dd.data[18].IndexOf("53.") != -1))
                     dd.data[18] = "";
             }
 
@@ -7601,7 +7476,7 @@ namespace PlayingWithCsharp
             return original;
         }
 
-        string getDealerID(string[] p, SqlConnection myConnection2, StreamWriter writer, ref string AtTheEnd, dealer locations)
+        string getDealerID(string[] p, MySqlConnection myConnection2, StreamWriter writer, ref string AtTheEnd, dealer locations)
         {
             Boolean similar;
             short id = 0, bigger = 0;
@@ -7610,18 +7485,18 @@ namespace PlayingWithCsharp
 
             try
             {
-                SqlDataReader myReader = null;
-                SqlCommand myCommandReader;
+                MySqlDataReader myReader = null;
+                MySqlCommand myCommandReader;
                 if (p[7] != "")
                 {
-                    myCommandReader = new SqlCommand("select * from Dealers where Name = @Name", myConnection2);
-                    SqlParameter select = new SqlParameter();
+                    myCommandReader = new MySqlCommand("select * from Dealers where Name = @Name", myConnection2);
+                    MySqlParameter select = new MySqlParameter();
                     select.ParameterName = "@Name";
                     select.Value = p[7];
                     myCommandReader.Parameters.Add(select);
                 }
                 else
-                    myCommandReader = new SqlCommand("select * from Dealers where Name is null", myConnection2);
+                    myCommandReader = new MySqlCommand("select * from Dealers where Name is null", myConnection2);
 
                 myReader = myCommandReader.ExecuteReader();
                 similar = myReader.HasRows;
@@ -7749,10 +7624,10 @@ namespace PlayingWithCsharp
                 do
                 {
                     exist = false;
-                    SqlDataReader myReader = null;
-                    SqlCommand myCommandReader = new SqlCommand("select * from Dealers where DealerID = @ID", myConnection2);
+                    MySqlDataReader myReader = null;
+                    MySqlCommand myCommandReader = new MySqlCommand("select * from Dealers where DealerID = @ID", myConnection2);
 
-                    SqlParameter select = new SqlParameter();
+                    MySqlParameter select = new MySqlParameter();
                     select.ParameterName = "@ID";
                     select.Value = DealerID;
                     myCommandReader.Parameters.Add(select);
@@ -7772,110 +7647,10 @@ namespace PlayingWithCsharp
                 Console.WriteLine(e.ToString());
             }
 
-            do
-            { // if it is an online deal, locations will be empty. So, DealerDetails must be initialized only to include an empty location into the database. If not, the location is not included and the deal data may not be found because the queries take location into consideration
-                location DealerDetails = new location();
+            MySqlCommand myCommandDealer = new MySqlCommand("INSERT INTO Dealers (DealerID, Name, URL, FullAddress) Values (@DealerID, @Company, @CompanyURL, @FullAddress)", myConnection2);
+            //            SqlCommand myCommandDealer = new SqlCommand("INSERT INTO Dealers (DealerID, Name, URL, Latitude, Longitude, FullAddress, StreetName, City, Province, PostalCode, Country, Map, Contact) Values (@DealerID, @Company, @CompanyURL, @Latitude, @Longitude, @FullAddress, @StreetName, @City, @Province, @PostalCode, @Country, @Map, @CompanyPhone)", myConnection2);
 
-                if (locations.CountLocations() != 0)
-                    DealerDetails = locations.GetRemoveLocation(0);
-
-                using (SqlCommand myCommandLocation = new SqlCommand("INSERT INTO Locations (DealerID, Latitude, Longitude, StreetName, City, Province, PostalCode, Country, Map, Contact) Values (@DealerID, @Latitude, @Longitude, @StreetName, @City, @Province, @PostalCode, @Country, @Map, @CompanyPhone)", myConnection2))
-                {
-                    SqlParameter p41a = new SqlParameter();
-                    p41a.ParameterName = "@DealerID";
-                    p41a.Value = DealerID;
-                    myCommandLocation.Parameters.Add(p41a);
-
-                    SqlParameter p9 = new SqlParameter();
-                    p9.ParameterName = "@Latitude";
-                    temp = DealerDetails.GetLatitude();
-                    if (temp == "")
-                        p9.Value = DBNull.Value;
-                    else
-                        p9.Value = temp;
-                    myCommandLocation.Parameters.Add(p9);
-
-                    SqlParameter p10 = new SqlParameter();
-                    p10.ParameterName = "@Longitude";
-                    temp = DealerDetails.GetLongitude();
-                    if (temp == "")
-                        p10.Value = DBNull.Value;
-                    else
-                        p10.Value = temp;
-                    myCommandLocation.Parameters.Add(p10);
-
-                    SqlParameter p12 = new SqlParameter();
-                    p12.ParameterName = "@StreetName";
-                    temp = DealerDetails.GetStreetAddress();
-                    if (temp == "")
-                        p12.Value = DBNull.Value;
-                    else
-                        p12.Value = temp;
-                    myCommandLocation.Parameters.Add(p12);
-
-                    SqlParameter p13 = new SqlParameter();
-                    p13.ParameterName = "@City";
-                    temp = DealerDetails.GetCity();
-                    if (temp == "")
-                        p13.Value = DBNull.Value;
-                    else
-                        p13.Value = temp;
-                    myCommandLocation.Parameters.Add(p13);
-
-                    SqlParameter p14 = new SqlParameter();
-                    p14.ParameterName = "@PostalCode";
-                    temp = DealerDetails.GetPostalCode();
-                    if (temp == "")
-                        p14.Value = DBNull.Value;
-                    else
-                        p14.Value = temp;
-                    myCommandLocation.Parameters.Add(p14);
-
-                    SqlParameter p15 = new SqlParameter();
-                    p15.ParameterName = "@Country";
-                    temp = DealerDetails.GetCountry();
-                    if (temp == "")
-                        p15.Value = DBNull.Value;
-                    else
-                        p15.Value = temp;
-                    myCommandLocation.Parameters.Add(p15);
-
-                    SqlParameter p16 = new SqlParameter();
-                    p16.ParameterName = "@Map";
-                    temp = DealerDetails.GetMap();
-                    if (temp == "")
-                        p16.Value = DBNull.Value;
-                    else
-                        p16.Value = temp;
-                    myCommandLocation.Parameters.Add(p16);
-
-                    SqlParameter p17 = new SqlParameter();
-                    p17.ParameterName = "@CompanyPhone";
-                    temp = DealerDetails.GetContact();
-                    if (temp == "")
-                        p17.Value = DBNull.Value;
-                    else
-                        p17.Value = temp;
-                    myCommandLocation.Parameters.Add(p17);
-
-                    SqlParameter p18 = new SqlParameter();
-                    p18.ParameterName = "@Province";
-                    temp = DealerDetails.GetProvince();
-                    if (temp == "")
-                        p18.Value = DBNull.Value;
-                    else
-                        p18.Value = temp;
-                    myCommandLocation.Parameters.Add(p18);
-
-                    myCommandLocation.ExecuteNonQuery();
-                }
-            } while (locations.CountLocations() > 0);
-
-            
-            SqlCommand myCommandDealer = new SqlCommand("INSERT INTO Dealers (DealerID, Name, URL, FullAddress) Values (@DealerID, @Company, @CompanyURL, @FullAddress)", myConnection2);
-//            SqlCommand myCommandDealer = new SqlCommand("INSERT INTO Dealers (DealerID, Name, URL, Latitude, Longitude, FullAddress, StreetName, City, Province, PostalCode, Country, Map, Contact) Values (@DealerID, @Company, @CompanyURL, @Latitude, @Longitude, @FullAddress, @StreetName, @City, @Province, @PostalCode, @Country, @Map, @CompanyPhone)", myConnection2);
-
-            SqlParameter p41b = new SqlParameter();
+            MySqlParameter p41b = new MySqlParameter();
             p41b.ParameterName = "@DealerID";
             p41b.Value = DealerID;
             myCommandDealer.Parameters.Add(p41b);
@@ -7887,7 +7662,7 @@ namespace PlayingWithCsharp
                 AtTheEnd = AtTheEnd + "WARNING: Check Dealer " + DealerID + ". It is completely NULL\n";
             }
 
-            SqlParameter p5 = new SqlParameter();
+            MySqlParameter p5 = new MySqlParameter();
             p5.ParameterName = "@Company";
             if (p[7] == "")
                 p5.Value = DBNull.Value;
@@ -7895,7 +7670,7 @@ namespace PlayingWithCsharp
                 p5.Value = p[7];
             myCommandDealer.Parameters.Add(p5);
 
-            SqlParameter p6 = new SqlParameter();
+            MySqlParameter p6 = new MySqlParameter();
             p6.ParameterName = "@CompanyURL";
             if (p[8] == "")
                 p6.Value = DBNull.Value;
@@ -7903,7 +7678,7 @@ namespace PlayingWithCsharp
                 p6.Value = p[8];
             myCommandDealer.Parameters.Add(p6);
 
-            SqlParameter p11 = new SqlParameter();
+            MySqlParameter p11 = new MySqlParameter();
             p11.ParameterName = "@FullAddress";
             if (p[13] == "")
                 p11.Value = DBNull.Value;
@@ -7912,6 +7687,105 @@ namespace PlayingWithCsharp
             myCommandDealer.Parameters.Add(p11);
 
             myCommandDealer.ExecuteNonQuery();
+
+            do
+            { // if it is an online deal, locations will be empty. So, DealerDetails must be initialized only to include an empty location into the database. If not, the location is not included and the deal data may not be found because the queries take location into consideration
+                location DealerDetails = new location();
+
+                if (locations.CountLocations() != 0)
+                    DealerDetails = locations.GetRemoveLocation(0);
+
+                using (MySqlCommand myCommandLocation = new MySqlCommand("INSERT INTO Locations (DealerID, Latitude, Longitude, StreetName, City, Province, PostalCode, Country, Map, Contact) Values (@DealerID, @Latitude, @Longitude, @StreetName, @City, @Province, @PostalCode, @Country, @Map, @CompanyPhone)", myConnection2))
+                {
+                    MySqlParameter p41a = new MySqlParameter();
+                    p41a.ParameterName = "@DealerID";
+                    p41a.Value = DealerID;
+                    myCommandLocation.Parameters.Add(p41a);
+
+                    MySqlParameter p9 = new MySqlParameter();
+                    p9.ParameterName = "@Latitude";
+                    temp = DealerDetails.GetLatitude();
+                    if (temp == "")
+                        p9.Value = DBNull.Value;
+                    else
+                        p9.Value = temp;
+                    myCommandLocation.Parameters.Add(p9);
+
+                    MySqlParameter p10 = new MySqlParameter();
+                    p10.ParameterName = "@Longitude";
+                    temp = DealerDetails.GetLongitude();
+                    if (temp == "")
+                        p10.Value = DBNull.Value;
+                    else
+                        p10.Value = temp;
+                    myCommandLocation.Parameters.Add(p10);
+
+                    MySqlParameter p12 = new MySqlParameter();
+                    p12.ParameterName = "@StreetName";
+                    temp = DealerDetails.GetStreetAddress();
+                    if (temp == "")
+                        p12.Value = DBNull.Value;
+                    else
+                        p12.Value = temp;
+                    myCommandLocation.Parameters.Add(p12);
+
+                    MySqlParameter p13 = new MySqlParameter();
+                    p13.ParameterName = "@City";
+                    temp = DealerDetails.GetCity();
+                    if (temp == "")
+                        p13.Value = DBNull.Value;
+                    else
+                        p13.Value = temp;
+                    myCommandLocation.Parameters.Add(p13);
+
+                    MySqlParameter p14 = new MySqlParameter();
+                    p14.ParameterName = "@PostalCode";
+                    temp = DealerDetails.GetPostalCode();
+                    if (temp == "")
+                        p14.Value = DBNull.Value;
+                    else
+                        p14.Value = temp;
+                    myCommandLocation.Parameters.Add(p14);
+
+                    MySqlParameter p15 = new MySqlParameter();
+                    p15.ParameterName = "@Country";
+                    temp = DealerDetails.GetCountry();
+                    if (temp == "")
+                        p15.Value = DBNull.Value;
+                    else
+                        p15.Value = temp;
+                    myCommandLocation.Parameters.Add(p15);
+
+                    MySqlParameter p16 = new MySqlParameter();
+                    p16.ParameterName = "@Map";
+                    temp = DealerDetails.GetMap();
+                    if (temp == "")
+                        p16.Value = DBNull.Value;
+                    else
+                        p16.Value = temp;
+                    myCommandLocation.Parameters.Add(p16);
+
+                    MySqlParameter p17 = new MySqlParameter();
+                    p17.ParameterName = "@CompanyPhone";
+                    temp = DealerDetails.GetContact();
+                    if (temp == "")
+                        p17.Value = DBNull.Value;
+                    else
+                        p17.Value = temp;
+                    myCommandLocation.Parameters.Add(p17);
+
+                    MySqlParameter p18 = new MySqlParameter();
+                    p18.ParameterName = "@Province";
+                    temp = DealerDetails.GetProvince();
+                    if (temp == "")
+                        p18.Value = DBNull.Value;
+                    else
+                        p18.Value = temp;
+                    myCommandLocation.Parameters.Add(p18);
+
+                    myCommandLocation.ExecuteNonQuery();
+                }
+            } while (locations.CountLocations() > 0);
             
             return (DealerID);
         }
@@ -7961,6 +7835,8 @@ namespace PlayingWithCsharp
             List<Thread> CityThreads = new List<Thread>();
             Tags tag = new Tags();
             List<Tags> ListTags = new List<Tags>();
+            string errors = "";
+            StreamWriter writer_DBConnect;
             
             // insertig "tags" into ListTags to start looking for the cities and extracting the information
             // Hard coded now... It must get from a file later
@@ -8022,7 +7898,7 @@ namespace PlayingWithCsharp
             tag.data[10] = "?\"\\\"og:description\\\" content=\\\"\";@\"\\\"/>\";||?\"\var DealName = \\\"\";@\"\\\";\"";
             tag.data[11] = "?\"\\\"og:latitude\\\" content=\\\"\";@\"\\\"\";||?\"&sll=\";@\",\";||?\"&ll=\";@\",\"";
             tag.data[12] = "?\"\\\"og:longitude\\\" content=\\\"\";@\"\\\"\"||?\"&sll=\";?\",\";@\"&\";||?\"&ll=\";?\",\";@\"&\"";
-            tag.data[13] = "#\"#2#\";?\"ocations:</strong>\";(?\"</strong><br />\";@2\"<br\")-\"<div class=\\\"divReviews\\\">\",\";;;\"";
+            tag.data[13] = "#\"#2#\";?\"ocations:</strong>\";(?\"</strong><br />\";@\"</\")-\"<div class=\\\"divReviews\\\">\",\";;;\"";
             tag.data[14] = "?\"\\\"og:street-address\\\" content=\\\"\";@\"\\\" />\"";
             tag.data[15] = "?\"\\\"og:locality\";?\"content=\\\"\"-\"/>\";@\",\"||?\"\\\"og:locality\\\" content=\\\"\";@\"\\\" />\"";
             tag.data[16] = "?\"\\\"og:postal-code\\\" content=\\\"\";@\"\\\" />\"";
@@ -8034,7 +7910,7 @@ namespace PlayingWithCsharp
             tag.data[22] = "?2\"var YouSaveHTML = '\";@\"(\"";
             tag.data[23] = "?2\"var YouSaveHTML = '\";?\"(\";@\")';\"";
             tag.data[24] = "?\"Share and get paid\";@\"per\"";
-            tag.data[25] = "";
+            tag.data[25] = "$5;#\"?a=81189909b75f\"";
             tag.data[26] = "?\"var DealSeconds_Total =\";@\";\"";
             tag.data[27] = "?\"var DealSeconds_Elapsed =\";@\";\"";
             tag.data[28] = "";
@@ -8063,7 +7939,7 @@ namespace PlayingWithCsharp
             ListTags.Add(tag);
 
             tag = new Tags();
-            tag.data[0] = "http://www.teambuy.ca/toronto";
+            tag.data[0] = "2;http://www.teambuy.ca/toronto";
             tag.data[1] = "?\"Sorry we could not find the page\";?\"<h2>The requested page: \\\"\";@\"\\\" can't be found\"||?\"<h1 style=\\\"text-align:center;\\\">TeamBuyers, we are undergoing a few site updates.\";@\"1>\"";
             tag.data[2] = "(?\"<option value=\\\"\";@\"\\\"\")||?\"<select id='headerCitySub'\";(?\"<option value='\";@\"'\")";
             tag.data[3] = "(?\"<div id=\\\"room\";?\"href=\\\"\";?\".ca\"@\"\\\">\")-\"nearBuysContent\"||(?\"<a class=\\\"image-link\\\" href=\\\"http://www.teambuy.ca\";@\"\\\"\")";
@@ -8073,10 +7949,10 @@ namespace PlayingWithCsharp
             tag.data[7] = "?\"<div id=\\\"companyName\\\">\";@\"</div>\"";
             tag.data[8] = "?\"<div id=\\\"companyWebsite\\\">\";?\"href=\\\"\";@\"\\\"\"";
             tag.data[9] = "?\"\\\"og:image\\\" content=\\\"\";@\"\\\"\";||?\"rel=\\\"image_src\\\" href=\\\"\";@\"\\\"\"";
-            tag.data[10] = "?\"id=\\\"dealOptionsFancy\";?\"\\\"\";0;($45;#\": \";?\"<h4>\";@\"<\")-\"</div>\",\";&;\"||?\"\\\"og:title\\\" content=\\\"TeamBuy.ca |\";@\"\\\" />\"";
+            tag.data[10] = "?\"id=\\\"dealOptionsFancy\";?\"\\\"\";0;($45;#\":- \";?\"<h4>\";@\"<\")-\"</div>\",\";&;\"||?\"\\\"og:title\\\" content=\\\"TeamBuy.ca |\";@\"\\\" />\"";
             tag.data[11] = "?\"http://maps.google.ca/maps?\";?\"&sll=\";@\",\"";
             tag.data[12] = "?\"http://maps.google.ca/maps?\";?\"&sll=\";?\",\";@\"&\"";
-            tag.data[13] = "#\"#4#\";?\"http://maps.google.ca/maps\"-\"<!-- GOOGLE MAP -->\";?\"http://maps.google.ca/maps\";?<\"<div\";(#\"%city\";?\">\";@\"<\";?\"http://maps.google.ca/maps\";@\"\\\"\";?\"</a\");||#\"#4#\";?\"$(\\\"#more_maps\\\")\";(?\"http://maps.google.ca/maps\";?\"&q=\";@\"\\\"\");||#\"#4#\";?\"<div id=\\\"companyAddress\\\"\";#\"%loca\";?\">\";@\"<\";?\"http://maps.google.ca/maps\";@\"\\\"\";||#\"#4#\";?\"Locations:\";@\"<div style=\\\"float:right\\\">\"";
+            tag.data[13] = "#\"#4#\";?\"http://maps.google.ca/maps\"-\"<!-- GOOGLE MAP -->\";?\"http://maps.google.ca/maps\";?<\"<div\";(#\"%city\";?\">\";@\"<\";?\"http://maps.google.ca/maps\";@\"\\\"\";?\"</a\");||#\"#4#\";?\"$(\\\"#more_maps\\\")\";(?\"http://maps.google.ca/maps\";?\"&q=\";@\"\\\"\");||#\"#4#\";?\"<div id=\\\"companyAddress\\\"\";#\"%loca\";?\">\";@\"<\";?\"http://maps.google.ca/maps\";@\"\\\"\";||#\"#4#\";?\"Locations:<\";?<\":\";@\"<div style=\\\"float:right\\\">\";||#\"#4#\";?\"Locations:\";@\"<div style=\\\"float:right\\\">\"";
             tag.data[14] = "?\"<div id=\\\"companyAddress\\\">\";@\"</div>\"";
             tag.data[15] = "";
             tag.data[16] = "";
@@ -8088,7 +7964,7 @@ namespace PlayingWithCsharp
             tag.data[22] = "?\"class=\\\"tableDisplay\";?3\"class=\\\"ddValues\\\">\";@\"/\"";
             tag.data[23] = "?\"id=\\\"dealOptionsFancy\";(?\"%\";?<\">\";@\"<\")-\"</div>\",\";&;\"||?\"class=\\\"tableDisplay\";?3\"class=\\\"ddValues\\\">\";?\"/\";@\"<\"";
             tag.data[24] = "?\"class =\\\"referFriends\";?\"$\";@\"</span>\";||?\"class =\\\"referFriends\";?\"$\";?<\" \";@\"$\"";
-            tag.data[25] = "";
+            tag.data[25] = "?\"\\\"og:url\\\" content=\\\"\";@4\"/\";#\"/referral/fx0bvjom5zem/\";$4";
             tag.data[26] = "";
             tag.data[27] = "";
             tag.data[28] = "?\"Time Left To Buy\";?\";\\\">\";@\"<\"";
@@ -8113,48 +7989,6 @@ namespace PlayingWithCsharp
             tag.data[47] = "";
             tag.data[48] = "";
             tag.data[49] = "?\"<title>\";@\"|\"-\"<\";||?\"<title>\";@\"<\"";
-
-            /*          tag.data[0] = "http://www.teambuy.ca/toronto";
-                        tag.data[1] = " ";
-                        tag.data[2] = " ";
-                        tag.data[3] = " ";
-                        tag.data[4] = " ";
-                        tag.data[5] = " ";
-                        tag.data[6] = " ";
-                        tag.data[7] = " ";
-                        tag.data[8] = " ";
-                        tag.data[9] = " ";
-                        tag.data[10] = " ";
-                        tag.data[11] = " ";
-                        tag.data[12] = " ";
-                        tag.data[13] = " ";
-                        tag.data[14] = " ";
-                        tag.data[15] = " ";
-                        tag.data[16] = " ";
-                        tag.data[17] = " ";
-                        tag.data[18] = " ";
-                        tag.data[19] = " ";
-                        tag.data[20] = " ";
-                        tag.data[21] = " ";
-                        tag.data[22] = " ";
-                        tag.data[23] = " ";
-                        tag.data[24] = " ";
-                        tag.data[25] = " ";
-                        tag.data[26] = " ";
-                        tag.data[27] = " ";
-                        tag.data[28] = " ";
-                        tag.data[29] = " ";
-                        tag.data[30] = " ";
-                        tag.data[31] = " ";
-                        tag.data[32] = " ";
-                        tag.data[33] = " ";
-                        tag.data[34] = " ";
-                        tag.data[35] = " ";
-                        tag.data[36] = " ";
-                        tag.data[37] = " ";
-                        tag.data[38] = " ";
-                        tag.data[39] = " ";
-                        tag.data[40] = " ";*/
             ListTags.Add(tag);
 
             tag = new Tags();
@@ -8162,13 +7996,13 @@ namespace PlayingWithCsharp
             tag.data[1] = "?\"<title>WagJag - Never Miss a WagJag!\";@\">\"";
             tag.data[2] = "(?\"class=\\\"city_link\\\" href=\\\"\";?\">\";@\"<\")";
             tag.data[3] = "(?\"<span><strong>&rsaquo;<a href=\\\"\";@\"\\\">\")";
-            tag.data[4] = "?\"js_wagjag_id\\\" value=\\\"\";@\"\\\"\"";
+            tag.data[4] = "(?\"class=\\\"deal_buy_link\";?\"&wagjag=\";@\"&\"),\";&;\";||?\"js_wagjag_id\\\" value=\\\"\";@\"\\\"\"";
             tag.data[5] = "?\"id=\\\"deal_headline\\\"><a href=\\\"\";@\"\\\">\"";
             tag.data[6] = "";
             tag.data[7] = "?\"<!-- <h1>About \";@\"</h1>\"";
             tag.data[8] = "?\"<br /><a href=\\\"\";@\"\\\"\";||?\"from <a href=\\\"\";@\"\\\"\";||?\"at <a href=\\\"\";@\"\\\"\";||?\"at<a href=\\\"\";@\"\\\"\";||?\"service on <a href=\\\"\"@\"\\\"\";||?\"target=\\\"_blank\\\">site\";?<\"<a href=\\\"\";@\"\\\"\";||?\"at the <a href=\\\"\";@\"\\\"\"";
             tag.data[9] = "?\"\\\"og:image\\\" content=\\\"\";@\"\\\"\"";
-            tag.data[10] = "?\"<meta name=\\\"description\\\" content=\\\"\";@\"\\\"/>\"";
+            tag.data[10] = "(?\"class=\\\"copy\";?\">\";@\"<\"),\";&;\";||?\"<meta name=\\\"description\\\" content=\\\"\";@\"\\\"/>\"";
             tag.data[11] = "";
             tag.data[12] = "";
             tag.data[13] = "#\"#3#\";?\"var sites = [[\";?<\"var\";@\"]]\";0;#\"/$/\";?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"</p>\";@\"<br /><a href=\\\"\"||#\"#3#\";?\"var sites = [[\";?<\"var\";@\"]]\"||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||#\"#3#\";?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\";||#\"#3#\";?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";@\"<br /><a href=\\\"\"";
@@ -8179,12 +8013,12 @@ namespace PlayingWithCsharp
             tag.data[17] = "#\"Canada\"";
             tag.data[18] = "";
             tag.data[19] = "";
-            tag.data[20] = "?\"<td>Regular Price:</td><td>\";@\"</td>\"";
-            tag.data[21] = "?\">Buy For\";@\"<\"";
-            tag.data[22] = "?\"<td>You Save:</td><td>\";@\"</td>\"";
-            tag.data[23] = "?\"<td>Discount:</td><td>\";@\"</td>\"";
+            tag.data[20] = "(?\"<dt class=\\\"first\";?\"$\";@\"<\"),\";&;\";||?\"<td>Regular Price:</td><td>\";@\"</td>\"";
+            tag.data[21] = "?\"class=\\\"buy_btn\";?\"$\";@\"<\"||(?\"class=\\\"deal_buy_link\";?\"$\";@\"<\"),\";&;\"";
+            tag.data[22] = "(?\"<dt class=\\\"first\";?2\"$\";@\"<\"),\";&;\";||?\"<td>You Save:</td><td>\";@\"</td>\"";
+            tag.data[23] = "(?\"<dt class=\\\"first\";?\"%\";?<\">\"@\"<\"),\";&;\";||?\"<td>Discount:</td><td>\";@\"</td>\"";
             tag.data[24] = "";
-            tag.data[25] = "";
+            tag.data[25] = "$5;#\"&wid=0be9341b4fbc618f44653d7cb7a9d7ab\"";
             tag.data[26] = "";
             tag.data[27] = "";
             tag.data[28] = "";
@@ -8194,7 +8028,7 @@ namespace PlayingWithCsharp
             tag.data[32] = "?\"buy_btn\\\" ><a href=\\\"#\\\"\";@\"<\"";
             tag.data[33] = "";
             tag.data[34] = "?\"buy_btn\\\" ><a href=\\\"#\\\"\";@\"<\"";
-            tag.data[35] = "?\"id=\\\"amount_bought\\\">\";?2\">\";@\"<\"";
+            tag.data[35] = "(?\"class=\\\"dealstats\";?\"/\";?<\">\"@\"<\"),\";&;\";||?\"id=\\\"amount_bought\\\">\";?2\">\";@\"<\"";
             tag.data[36] = "?\"class=\\\"deal_highlights\\\">\";?\"<ul>\";@\"</ul>\"";
             tag.data[37] = "?\"class=\\\"offer_details\\\"\";?\"<ul>\";@\"</ul>\"";
             tag.data[38] = "?\"id=\\\"deal_information\\\"\";?\"<div>\";@\"<strong>Locations\";||?\"id=\\\"deal_information\\\"\";?\"<div>\";@\"<strong>Reviews\";||?\"id=\\\"deal_information\\\"\";?\"<div>\";@\"/><a href=\"";
@@ -8216,13 +8050,13 @@ namespace PlayingWithCsharp
             tag.data[1] = "?\"<title>WagJag - Never Miss a WagJag!\";@\">\"";
             tag.data[2] = "#\"toronto\"";
             tag.data[3] = "(?\"<span><strong>&rsaquo;<a href=\\\"?\";@\"\\\">\")";
-            tag.data[4] = "?\"js_wagjag_id\\\" value=\\\"\";@\"\\\"\"";
+            tag.data[4] = "?\"class=\\\"deal_buy_link\";?\"&wagjag=\";@\"&\"),\";&;\";||?\"js_wagjag_id\\\" value=\\\"\";@\"\\\"\"";
             tag.data[5] = "?\"id=\\\"deal_headline\\\"><a href=\\\"\";@\"\\\">\"";
             tag.data[6] = "#\"Grocery\"";
             tag.data[7] = "?\"<!-- <h1>About \";@\"</h1>\"";
             tag.data[8] = "?\"<br /><a href=\\\"\";@\"\\\"\";||?\"from <a href=\\\"\";@\"\\\"\";||?\"at <a href=\\\"\";@\"\\\"\";||?\"at<a href=\\\"\";@\"\\\"\";||?\"target=\\\"_blank\\\">site\";?<\"<a href=\\\"\";@\"\\\"\"";
             tag.data[9] = "?\"\\\"og:image\\\" content=\\\"\";@\"\\\"\"";
-            tag.data[10] = "?\"<meta name=\\\"description\\\" content=\\\"\";@\"\\\"/>\"";
+            tag.data[10] = "(?\"class=\\\"copy\";?\">\";@\"<\"),\";&;\";||?\"<meta name=\\\"description\\\" content=\\\"\";@\"\\\"/>\"";
             tag.data[11] = "";
             tag.data[12] = "";
             tag.data[13] = "#\"#3#\";?\"var sites = [[\";?<\"var\";@\"]]\"||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<strong>Reviews\";||#\"#3#\";?\"<strong>Locations\";?\"</p>\";@\"<br /><a href=\\\"\";||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<strong>Reviews\";?<\"</p>\";@\"<strong>Reviews\"||#\"#3#\";?\"<!-- End Deal Information -->\";?<\"<br /><a href=\\\"\";?<\"<div>\";?\"</p>\n\";@\"<br /><a href=\\\"\"||#\"#3#\";?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";?\"</li></ul>\";@\"<br /><a href=\\\"\"||#\"#3#\";?\"<!-- End Deal Information -->\"; ?<\"<br /><a href=\\\"\";?<\"</p>\";@\"<br /><a href=\\\"\"";
@@ -8232,12 +8066,12 @@ namespace PlayingWithCsharp
             tag.data[17] = "#\"Canada\"";
             tag.data[18] = "";
             tag.data[19] = "";
-            tag.data[20] = "?\"<td>Regular Price:</td><td>\";@\"</td>\"";
-            tag.data[21] = "?\">Buy For\";@\"<\"";
-            tag.data[22] = "?\"<td>You Save:</td><td>\";@\"</td>\"";
-            tag.data[23] = "?\"<td>Discount:</td><td>\";@\"</td>\"";
+            tag.data[20] = "(?\"<dt class=\\\"first\";?\"$\";@\"<\"),\";&;\";||?\"<td>Regular Price:</td><td>\";@\"</td>\"";
+            tag.data[21] = "?\"class=\\\"buy_btn\";?\"$\";@\"<\"||(?\"class=\\\"deal_buy_link\";?\"$\";@\"<\"),\";&;\"";
+            tag.data[22] = "(?\"<dt class=\\\"first\";?2\"$\";@\"<\"),\";&;\";||?\"<td>You Save:</td><td>\";@\"</td>\"";
+            tag.data[23] = "(?\"<dt class=\\\"first\";?\"%\";?<\">\"@\"<\"),\";&;\";||?\"<td>Discount:</td><td>\";@\"</td>\"";
             tag.data[24] = "";
-            tag.data[25] = "";
+            tag.data[25] = "$5;#\"&wid=0be9341b4fbc618f44653d7cb7a9d7ab\"";
             tag.data[26] = "";
             tag.data[27] = "";
             tag.data[28] = "";
@@ -8247,7 +8081,7 @@ namespace PlayingWithCsharp
             tag.data[32] = "?\"buy_btn\\\" ><a href=\\\"#\\\"\";@\"<\"";
             tag.data[33] = "";
             tag.data[34] = "?\"buy_btn\\\" ><a href=\\\"#\\\"\";@\"<\"";
-            tag.data[35] = "?\"id=\\\"amount_bought\\\">\";?2\">\";@\"<\"";
+            tag.data[35] = "(?\"class=\\\"dealstats\";?\"/\";?<\">\"@\"<\"),\";&;\";||?\"id=\\\"amount_bought\\\">\";?2\">\";@\"<\"";
             tag.data[36] = "?\"class=\\\"deal_highlights\\\">\";?\"<ul>\";@\"</ul>\"";
             tag.data[37] = "?\"class=\\\"offer_details\\\"\";?\"<ul>\";@\"</ul>\"";
             tag.data[38] = "?\"id=\\\"deal_information\\\"\";?\"<div>\";@\"<strong>Locations\";||?\"id=\\\"deal_information\\\"\";?\"<div>\";@\"<strong>Reviews\";||?\"id=\\\"deal_information\\\"\";?\"<div>\";@\"/><a href=\"";
@@ -8267,15 +8101,15 @@ namespace PlayingWithCsharp
             tag = new Tags();
             tag.data[0] = "3;http://www.livingsocial.com/cities/";
             tag.data[1] = "?\"<title>Missing Deal - LivingSocial\";@\">\"";
-            tag.data[2] = "?\"<a href=\\\"/cities/\";(?\"<a href=\\\"/cities/\";@\"\\\"\")";
-            tag.data[3] = "(?\"<a class=\\\"price\\\" href=\\\"/cities/\";@\"\\\"\";?\" - \";#\"&$6:\";@\"'\";#\";\";)";
+            tag.data[2] = "?\"div class=\\\"all-cities\";(?\"<a href=\\\"/cities/\";@\"\\\"\")";
+            tag.data[3] = "(?\"<a class=\\\"price\\\" href=\\\"/\";@\"\\\"\";?\" - \";#\"&$6:\";@\"'\";#\";\";)||(?\"<div class=\\\"deal-title\";?\"<a href=\\\"\";@\"\\\"\")";
             tag.data[4] = "?\"property=\\\"og:url\\\" content=\\\"http://\";?2\"/\";@\"-\"";
             tag.data[5] = "?\"property=\\\"og:url\\\" content=\\\"\";@\"\\\"/>\"";
-            tag.data[6] = "";
-            tag.data[7] = "?\"<div class=\\\"deal-title\\\">\";?\"<h1>\";@\"</h1>\"";
-            tag.data[8] = "?\" at <a target=\\\"_blank\\\" href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" at <a href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" from <a target=\\\"_blank\\\" href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" from <a href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" toward <a target=\\\"_blank\\\" href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" toward <a href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" deal. <a href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\"<div id=\\\"sfwt_short_1\\\"><p>\"-\"#sfwt_short_1').show\";?\"href=\\\"http\";?<\"\\\"\";@\"\\\"\"||?\"<div id=\\\"sfwt_short_1\\\"><p>\"-\"#sfwt_short_1').show\";?\"href=\\\"www\";?<\"\\\"\";@\"\\\"\"";
+            tag.data[6] = "?\"<link href=\\\"http://www.livingsocial.com/escapes\";?\">\";#\"Escape\";||?\"<link href=\\\"http://www.livingsocial.com/adventures\";?\">\";#\"Adventure\";||?\"data-dealtype=\\\"Families\";?\">\";#\"Family\"";
+            tag.data[7] = "?\"<div class=\\\"deal-title\\\">\";?\"<h1>\";@\"</h1>\"||?\"og:merchant\";?\"=\\\"\";@\"\\\"\"";
+            tag.data[8] = "?\"og:merchant\";?\"LivingSocial\"-\">\";#\" \"||?\" at <a target=\\\"_blank\\\" href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" at <a href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" from <a target=\\\"_blank\\\" href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" from <a href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" toward <a target=\\\"_blank\\\" href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" toward <a href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\" deal. <a href=\\\"\"-\"#sfwt_short_1').show\";@\"\\\"\";||?\"<div id=\\\"sfwt_short_1\\\"><p>\"-\"#sfwt_short_1').show\";?\"href=\\\"http\";?<\"\\\"\";@\"\\\"\"||?\"<div id=\\\"sfwt_short_1\\\"><p>\"-\"#sfwt_short_1').show\";?\"href=\\\"www\";?<\"\\\"\";@\"\\\"\"";
             tag.data[9] = "?\"property=\\\"og:image\\\" content=\\\"\";@\"\\\"/>\"";
-            tag.data[10] = "?\"<div class=\\\"deal-title\\\">\";?\"<p>\";@\"</p>\"";
+            tag.data[10] = "?\"<div class=\\\"deal-title\\\">\";?\"<p>\";@\"</p>\"||?\"<div id=\\\"escapes-title\";?\">\";@\"</div>\"";
             tag.data[11] = "?\"http://maps.google.com/maps?q=\";@\"\\\"\"";
             tag.data[12] = "";
             tag.data[13] = "#\"#5#\";(?\"<span class=\\\"street_1\\\">\";@\"<span class=\\\"directions\\\">\"),\"\\|\"";
@@ -8285,21 +8119,21 @@ namespace PlayingWithCsharp
             tag.data[17] = "?\"<div class=\\\"all-cities\\\">\";?$44;?<\"<h2>\";@\"<\"";
             tag.data[18] = "(?\"class=\\\"directions\\\"><a href=\\\"\";@\"\\\"\"),\"\\|\"";
             tag.data[19] = "";
-            tag.data[20] = "";
-            tag.data[21] = "?\"<div class=\\\"deal-price \\\">\";?\"</sup>\";@\"</div>\";||?\"<div class=\\\"deal-price \\\">\";@\"<\"   ";
+            tag.data[20] = "?\"class=\\\"original-price\";?\"$\";@\"<\"";
+            tag.data[21] = "?\"<div class=\\\"deal-price\";?\"</sup>\";@\"</div>\";||?\"<div class=\\\"deal-price\";?\"$\";@\"</div>\"||?\"<div class=\\\"deal-price\";?\">\";@\"<\"   ";
             tag.data[22] = "";
-            tag.data[23] = "?\"id=\\\"percentage\\\">\";@\"<\"";
+            tag.data[23] = "?\"id=\\\"percentage\\\">\";@\"<\"||?\"class=\\\"discount\\\">\";?\"%\"-\"</li>\";?<\">\";@\"<\"";
             tag.data[24] = "";
             tag.data[25] = "";
             tag.data[26] = "";
             tag.data[27] = "";
-            tag.data[28] = "?\"<span class=\\\"num\\\">\";@\"</div>\"||?\"class=\\\"last\\\">\"-\"sfwt_short_1\";?\">\";@\"</div>\"";
+            tag.data[28] = "?\"<span class=\\\"num\\\">\";@\"class=\\\"label\"||?\"class=\\\"last\\\">\"-\"sfwt_short_1\";?\">\";@\"class=\\\"label\"||?\"class=\\\"purchased\";?2\"class=\\\"value\\\">\"-\"<script\";@\"class=\\\"label\"";
             tag.data[29] = "#\"#2#\"";
             tag.data[30] = "";
             tag.data[31] = "";
             tag.data[32] = "";
             tag.data[33] = "";
-            tag.data[34] = "?\"deal-over\";@\"\\\"\";||?\"class=\\\"deal-buy-box buy-now-over\";@\"\\\">\";||?\"class=\\\"deal-buy-box buy-now-soldout\";@\"\\\">\"";
+            tag.data[34] = "?\"deal-over\";@\"\\\"\";||?\"class=\\\"deal-buy-box buy-now-over\";@\"\\\">\";||?\"class=\\\"deal-buy-box buy-now-soldout\";@\"\\\">\"||?\"a class=\\\"button buy-sold-out\";@\">\"";
             tag.data[35] = "?\"class=\\\"purchased\\\">\";?\">\";@\"<\"";
             tag.data[36] = "";
             tag.data[37] = "?\"class=\\\"fine-print\\\">\";?\"<p>\";@\"</p>\"";
@@ -8349,7 +8183,7 @@ namespace PlayingWithCsharp
             tag.data[22] = "?2\"class=\\\"value\\\">$\";@\"<\"";
             tag.data[23] = "?2\"class=\\\"value\\\">\";@\"%<\"";
             tag.data[24] = "?\"Share Today's Deal and get $\";@\" \"";
-            tag.data[25] = "";
+            tag.data[25] = "#\"http://www.dealticker.com/a.php?a=16465_\";$4";
             tag.data[26] = "";
             tag.data[27] = "";
             tag.data[28] = "?\"Time Remaining:\";?2\"<tr>\";@\"</tr>\"";
@@ -8402,7 +8236,7 @@ namespace PlayingWithCsharp
             tag.data[22] = "";
             tag.data[23] = "?\">savings<\";?\"<p>\";@\"</p>\"";
             tag.data[24] = "?\"<p>Refer a Friend and Get Paid \";@\"(\"";
-            tag.data[25] = "";
+            tag.data[25] = "$5;#\"?aid=auP8K4B5R3\"";
             tag.data[26] = "";
             tag.data[27] = "";
             tag.data[28] = "";
@@ -8430,7 +8264,7 @@ namespace PlayingWithCsharp
             ListTags.Add(tag);
 
                         tag = new Tags();
-                        tag.data[0] = "10;http://www.groupon.com/greater-toronto-area/";
+                        tag.data[0] = "8;http://www.groupon.com/greater-toronto-area/";
                         tag.data[1] = "?\"<title>Oops! That page doesn't exist\";@\">\"";
                         tag.data[2] = "?\"id='state_Country\";(?\"<li\";?\"<a href=\\\"\";@\"\\\"\";#\"all\")-\"<ul class='country'>\";0;(?\"<li class='canada\";?\"<a href=\\\"\";@\"\\\"\";#\"all\")-\"<ul class='country'>\"";
                         //                        tag.data[2] = "?\"id='state_Country\";(?\"<li>\";?\"<a href=\\\"\";@\"\\\"\";#\"all\")-\"<div class='announcement\";0;(?\"<li class='area'>\";?\"<a href=\\\"\";@\"\\\"\";#\"all\")-\"<div class='announcement\";0;(?\"<li class='canada'>\";?\"<a href=\\\"\";@\"\\\"\";#\"all\")-\"<div class='announcement\";0;(?\"<li class='country'>\";?\"<a href=\\\"\";@\"\\\"\";#\"all\")-\"<div class='announcement\"";
@@ -8485,7 +8319,7 @@ namespace PlayingWithCsharp
 
 
                         tag = new Tags();
-                        tag.data[0] = "http://www.giltcity.com/newyork";
+                        tag.data[0] = "3;http://www.giltcity.com/newyork";
                         tag.data[1] = "?\"id=\\\"c_error\";@\"<\"";
                         tag.data[2] = "(?\"class=\\\"city\\\"\";?\"<a href=\\\"\";@\"\\\"\")";
                         tag.data[3] = "(?\"class=\\\"offer-info\";?\"<a href=\\\"\";@\"\\\"\")";
@@ -8589,7 +8423,7 @@ namespace PlayingWithCsharp
             baseaddress.Add("http://www.teambuy.ca/$");
             baseaddress.Add("http://www.wagjag.com/$");
             baseaddress.Add("http://www.wagjag.com/?$&vertical=grocery");
-            baseaddress.Add("http://www.livingsocial.com/cities/$");
+            baseaddress.Add("http://www.livingsocial.com/$");
             baseaddress.Add("http://www.dealticker.com/$");
             baseaddress.Add("https://takeitandgo.ca/localdeals/$");
             baseaddress.Add("http://www.groupon.com$");
@@ -8597,18 +8431,21 @@ namespace PlayingWithCsharp
 
             List<string> DontHandleFirstPage = new List<string>();
             DontHandleFirstPage.Add("http://www.teambuy.ca/toronto");
+            DontHandleFirstPage.Add("http://www.livingsocial.com/cities/");
             DontHandleFirstPage.Add("http://www.groupon.com/greater-toronto-area/");
             DontHandleFirstPage.Add("http://www.giltcity.com/newyork");
 
+            writer_DBConnect = File.CreateText(@"C:\Users\MediaConnect\Documents\DBConnectError.txt");
+
             // Transfer Timed Out Deals to DealsEnded Table
-            SqlConnection myConnection = new SqlConnection("server=MEDIACONNECT-PC\\MCAPPS; Trusted_Connection=yes; database=Deals; connection timeout=15");
+            MySqlConnection myConnection = new MySqlConnection("server=localhost; database=Deals; UID=root; PASSWORD=bahia96; connection timeout=15");
             try
             {
                 myConnection.Open();
             }
             catch (Exception e)
             {
-                myConnection = new SqlConnection("server=FIVEFINGERFINDS\\MEDIACONNECT; Trusted_Connection=yes; database=Deals; connection timeout=15");
+                myConnection = new MySqlConnection("server=localhost; database=Deals; UID=root; PASSWORD=mcconnect1G7n0; connection timeout=15");
                 try
                 {
                     myConnection.Open();
@@ -8617,30 +8454,41 @@ namespace PlayingWithCsharp
                 {
                     Console.WriteLine(e.ToString());
                     Console.WriteLine(error.ToString());
+                    errors = errors + "Error connecting Database;\n" + e.ToString() + ";\n" + error.ToString() + ";\n";
                 }
             }
 
-            DateTimeOffset current_time = DateTimeOffset.Now;
-            using (SqlCommand myCommand = new SqlCommand("MERGE Deals.dbo.DealsEnded USING (SELECT * FROM [Deals].[dbo].[DealsList] where ExpiryTime < @CURRENT_TIME) as source on (Deals.dbo.DealsEnded.DealID = source.dealID) WHEN not matched then insert (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) Values (source.Website, source.DealID, source.DealLinkURL, source.Category, source.Image, source.Description, source.DealerID, source.RegularPrice, source.OurPrice, source.Saved, source.Discount, source.PayOutAmount, source.PayOutLink, source.ExpiryTime, source.MaxNumberVouchers, source.MinNumberVouchers, source.PaidVoucherCount, source.DealExtractedTime, source.Highlights, source.BuyDetails, source.DealText, source.Reviews, source.DealSite, source.Currency);", myConnection))
+            string current_time = DateTimeOffset.Now.ToString();
+// For SQLServer ->            using (MySqlCommand myCommand = new MySqlCommand("MERGE Deals.dbo.DealsEnded USING (SELECT * FROM [Deals].[dbo].[DealsList] where ExpiryTime < @CURRENT_TIME) as source on (Deals.dbo.DealsEnded.DealID = source.dealID) WHEN not matched then insert (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) Values (source.Website, source.DealID, source.DealLinkURL, source.Category, source.Image, source.Description, source.DealerID, source.RegularPrice, source.OurPrice, source.Saved, source.Discount, source.PayOutAmount, source.PayOutLink, source.ExpiryTime, source.MaxNumberVouchers, source.MinNumberVouchers, source.PaidVoucherCount, source.DealExtractedTime, source.Highlights, source.BuyDetails, source.DealText, source.Reviews, source.DealSite, source.Currency);", myConnection))
+            using (MySqlCommand myCommand = new MySqlCommand("INSERT INTO Deals.DealsEnded (Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency) SELECT Website, DealID, DealLinkURL, Category, Image, Description, DealerID, RegularPrice, OurPrice, Saved, Discount, PayOutAmount, PayOutLink, ExpiryTime, MaxNumberVouchers, MinNumberVouchers, PaidVoucherCount, DealExtractedTime, Highlights, BuyDetails, DealText, Reviews, DealSite, Currency FROM Deals.DealsList where ExpiryTime < @CURRENT_TIME;", myConnection))
             {
-                SqlParameter param = new SqlParameter();
+                MySqlParameter param = new MySqlParameter();
                 param.ParameterName = "@CURRENT_TIME";
-                param.Value = current_time;
+                param.Value = DateTime.Parse(current_time);
                 myCommand.Parameters.Add(param);
 
                 myCommand.ExecuteNonQuery();
             }
 
-            using (SqlCommand myCommand = new SqlCommand("DELETE FROM [Deals].[dbo].[DealsList] where ExpiryTime < @CURRENT_TIME", myConnection))
+            using (MySqlCommand myCommand = new MySqlCommand("DELETE FROM Deals.DealsList WHERE ExpiryTime < @CURRENT_TIME", myConnection))
             {
-                SqlParameter param = new SqlParameter();
+                MySqlParameter param = new MySqlParameter();
                 param.ParameterName = "@CURRENT_TIME";
-                param.Value = current_time;
+                param.Value = DateTime.Parse(current_time);
                 myCommand.Parameters.Add(param);
 
                 myCommand.ExecuteNonQuery();
             }
 
+            using (MySqlCommand myCommand = new MySqlCommand("UPDATE Deals.OtherData SET DealValid = 'false' WHERE ExpiryTime < @CURRENT_TIME;", myConnection))
+            {
+                MySqlParameter param = new MySqlParameter();
+                param.ParameterName = "@CURRENT_TIME";
+                param.Value = DateTime.Parse(current_time);
+                myCommand.Parameters.Add(param);
+
+                myCommand.ExecuteNonQuery();
+            }
             myConnection.Close();
 
             int numThreads = ListTags.Count;
@@ -8649,9 +8497,11 @@ namespace PlayingWithCsharp
 
             Console.WriteLine(DateTime.Now);
 
-//            for (int i = 0; i < ListTags.Count(); i++)
+            for (int i = 0; i < ListTags.Count(); i++)
             {
-                int i = 8;
+//                int i = 2;
+//                if (i == 2)
+//                    break;
                 if (i == 6)
                     i += 1;
                 string website = ListTags.ElementAt(i).data[0];
@@ -8668,6 +8518,8 @@ namespace PlayingWithCsharp
                     t.Start();
                 }
             }
+            writer_DBConnect.Write(errors);
+            writer_DBConnect.Close();
 /*            while (CityThreads.Count() != 0)
             {
                 for (int i = 0; i < CityThreads.Count(); i++)

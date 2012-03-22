@@ -3,3 +3,4 @@ c:\users\mediaconnect\documents\visual studio 2010\Projects\PlayingWithCsharp\Pl
 c:\users\mediaconnect\documents\visual studio 2010\Projects\PlayingWithCsharp\PlayingWithCsharp\obj\x86\Debug\ResolveAssemblyReference.cache
 c:\users\mediaconnect\documents\visual studio 2010\Projects\PlayingWithCsharp\PlayingWithCsharp\obj\x86\Debug\PlayingWithCsharp.exe
 c:\users\mediaconnect\documents\visual studio 2010\Projects\PlayingWithCsharp\PlayingWithCsharp\obj\x86\Debug\PlayingWithCsharp.pdb
+C:\Users\MediaConnect\Documents\Visual Studio 2010\Projects\PlayingWithCsharp\PlayingWithCsharp\bin\Debug\MySql.Data.dll
